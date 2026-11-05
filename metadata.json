@@ -1,0 +1,6 @@
+{
+  "name": "ZenBaaS - Modern Mini Backend-as-a-Service Console",
+  "description": "Tableau de bord moderne et épuré pour mini-BaaS inspiré de Supabase et Vercel avec espaces Administrateur et Développeur, explorateur de collections, gestion des clés API et monitoring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
