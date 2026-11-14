@@ -1,0 +1,300 @@
+@import 'tailwindcss';
+
+@import 'tw-animate-css';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+    --font-sans:
+        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+
+    --font-mono:
+        'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
+        Consolas, 'Liberation Mono', 'Courier New', monospace;
+
+    --radius-lg: var(--radius);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-sm: calc(var(--radius) - 4px);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.87 0 0);
+    --chart-1: oklch(0.646 0.222 41.116);
+    --chart-2: oklch(0.6 0.118 184.704);
+    --chart-3: oklch(0.398 0.07 227.392);
+    --chart-4: oklch(0.828 0.189 84.429);
+    --chart-5: oklch(0.769 0.188 70.08);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.87 0 0);
+}
+
+.dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.145 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.145 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.985 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.396 0.141 25.723);
+    --destructive-foreground: oklch(0.637 0.237 25.331);
+    --border: oklch(0.269 0 0);
+    --input: oklch(0.269 0 0);
+    --ring: oklch(0.439 0 0);
+    --chart-1: oklch(0.488 0.243 264.376);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.769 0.188 70.08);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.645 0.246 16.439);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.985 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(0.269 0 0);
+    --sidebar-ring: oklch(0.439 0 0);
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+/* PrismJS Monokai Syntax Highlighting (Light & Dark Modes + JetBrains Mono) */
+.zenbase-prism-monokai pre,
+.zenbase-prism-monokai code,
+.zenbase-markdown pre,
+.zenbase-markdown code {
+    font-family:
+        'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
+        Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-variant-ligatures: contextual;
+}
+
+/* Light Mode Monokai Tokens */
+.zenbase-prism-monokai .token.comment,
+.zenbase-prism-monokai .token.prolog,
+.zenbase-prism-monokai .token.doctype,
+.zenbase-prism-monokai .token.cdata,
+.zenbase-markdown pre .token.comment {
+    color: #8f8b77;
+    font-style: italic;
+}
+
+.zenbase-prism-monokai .token.keyword,
+.zenbase-prism-monokai .token.operator,
+.zenbase-prism-monokai .token.tag,
+.zenbase-prism-monokai .token.deleted,
+.zenbase-markdown pre .token.keyword,
+.zenbase-markdown pre .token.operator,
+.zenbase-markdown pre .token.tag {
+    color: #d81b60;
+    font-weight: 600;
+}
+
+.zenbase-prism-monokai .token.property,
+.zenbase-markdown pre .token.property {
+    color: #d81b60;
+}
+
+.zenbase-prism-monokai .token.string,
+.zenbase-prism-monokai .token.char,
+.zenbase-prism-monokai .token.attr-value,
+.zenbase-prism-monokai .token.regex,
+.zenbase-prism-monokai .token.inserted,
+.zenbase-markdown pre .token.string,
+.zenbase-markdown pre .token.attr-value {
+    color: #9e7700;
+}
+
+.zenbase-prism-monokai .token.function,
+.zenbase-prism-monokai .token.class-name,
+.zenbase-prism-monokai .token.attr-name,
+.zenbase-prism-monokai .token.selector,
+.zenbase-markdown pre .token.function,
+.zenbase-markdown pre .token.class-name {
+    color: #4e8a06;
+}
+
+.zenbase-prism-monokai .token.number,
+.zenbase-prism-monokai .token.boolean,
+.zenbase-prism-monokai .token.constant,
+.zenbase-prism-monokai .token.symbol,
+.zenbase-markdown pre .token.number,
+.zenbase-markdown pre .token.boolean,
+.zenbase-markdown pre .token.constant {
+    color: #7c3aed;
+}
+
+.zenbase-prism-monokai .token.variable,
+.zenbase-prism-monokai .token.parameter,
+.zenbase-markdown pre .token.variable {
+    color: #c25e00;
+}
+
+.zenbase-prism-monokai .token.builtin,
+.zenbase-markdown pre .token.builtin {
+    color: #00838f;
+}
+
+.zenbase-prism-monokai .token.punctuation,
+.zenbase-markdown pre .token.punctuation {
+    color: #52524e;
+}
+
+/* Dark Mode Monokai Classic Tokens */
+.dark .zenbase-prism-monokai .token.comment,
+.dark .zenbase-prism-monokai .token.prolog,
+.dark .zenbase-prism-monokai .token.doctype,
+.dark .zenbase-prism-monokai .token.cdata,
+.dark .zenbase-markdown pre .token.comment {
+    color: #75715e;
+    font-style: italic;
+}
+
+.dark .zenbase-prism-monokai .token.keyword,
+.dark .zenbase-prism-monokai .token.operator,
+.dark .zenbase-prism-monokai .token.tag,
+.dark .zenbase-prism-monokai .token.deleted,
+.dark .zenbase-markdown pre .token.keyword,
+.dark .zenbase-markdown pre .token.operator,
+.dark .zenbase-markdown pre .token.tag {
+    color: #f92672;
+    font-weight: 600;
+}
+
+.dark .zenbase-prism-monokai .token.property,
+.dark .zenbase-markdown pre .token.property {
+    color: #f92672;
+}
+
+.dark .zenbase-prism-monokai .token.string,
+.dark .zenbase-prism-monokai .token.char,
+.dark .zenbase-prism-monokai .token.attr-value,
+.dark .zenbase-prism-monokai .token.regex,
+.dark .zenbase-prism-monokai .token.inserted,
+.dark .zenbase-markdown pre .token.string,
+.dark .zenbase-markdown pre .token.attr-value {
+    color: #e6db74;
+}
+
+.dark .zenbase-prism-monokai .token.function,
+.dark .zenbase-prism-monokai .token.class-name,
+.dark .zenbase-prism-monokai .token.attr-name,
+.dark .zenbase-prism-monokai .token.selector,
+.dark .zenbase-markdown pre .token.function,
+.dark .zenbase-markdown pre .token.class-name {
+    color: #a6e22e;
+}
+
+.dark .zenbase-prism-monokai .token.number,
+.dark .zenbase-prism-monokai .token.boolean,
+.dark .zenbase-prism-monokai .token.constant,
+.dark .zenbase-prism-monokai .token.symbol,
+.dark .zenbase-markdown pre .token.number,
+.dark .zenbase-markdown pre .token.boolean,
+.dark .zenbase-markdown pre .token.constant {
+    color: #ae81ff;
+}
+
+.dark .zenbase-prism-monokai .token.variable,
+.dark .zenbase-prism-monokai .token.parameter,
+.dark .zenbase-markdown pre .token.variable {
+    color: #fd971f;
+}
+
+.dark .zenbase-prism-monokai .token.builtin,
+.dark .zenbase-markdown pre .token.builtin {
+    color: #66d9ef;
+}
+
+.dark .zenbase-prism-monokai .token.punctuation,
+.dark .zenbase-markdown pre .token.punctuation {
+    color: #f8f8f2;
+}
