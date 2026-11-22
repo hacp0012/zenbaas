@@ -26,6 +26,7 @@ const baas = new BaaSClient(config: ZenbaseConfig);
 | `apiKey` | `string` | ✅ | Clé d'API de l'application : utilisez `zb_sec_...` côté serveur Node.js (accès complet sans restriction CORS) ou `zb_pub_...` côté client navigateur. |
 | `headers` | `Record<string, string>` | ❌ | En-têtes HTTP additionnels envoyés avec chaque requête. |
 | `fetch` | `typeof fetch` | ❌ | Implémentation personnalisée de `fetch` (utile pour les tests unitaires, proxys d'entreprise ou environnements isolés). |
+| `timeoutMs` | `number` | ❌ | Délai maximal en millisecondes avant d'annuler automatiquement une requête via `AbortController`. |
 
 ### Propriétés et méthodes d'instance de `Zenbase`
 
@@ -37,6 +38,9 @@ const baas = new BaaSClient(config: ZenbaseConfig);
 | `zb.functions` | `FunctionsModule` | Sous-module d'invocation des Web Functions PHP serverless. |
 | `zb.blob` | `typeof ZenbaseBlob` | Référence directe vers l'utilitaire statique `ZenbaseBlob` pour manipuler les champs binaires BLOB. |
 | `zb.collection<T>(name)` | `(name: string) => CollectionQueryBuilder<T>` | Raccourci direct vers `zb.database.collection<T>(name)`. |
+| `zb.setHeader(key, value)` | `(key: string, value: string) => void` | Ajoute ou met à jour un en-tête HTTP envoyé avec toutes les requêtes suivantes. |
+| `zb.removeHeader(key)` | `(key: string) => void` | Supprime un en-tête HTTP personnalisé précédemment ajouté. |
+| `zb.getEndpoint()` | `() => string` | Retourne l'URL normalisée de la passerelle API (`/api/v1`). |
 
 ---
 
@@ -48,7 +52,9 @@ Accès : `zb.database`
 | :--- | :--- | :--- | :--- |
 | `collection<T>(name)` | `(name: string)` | `CollectionQueryBuilder<T>` | Initialise un constructeur de requêtes typé sur la collection `name`. |
 | `from<T>(name)` | `(name: string)` | `CollectionQueryBuilder<T>` | Alias de `collection<T>(name)` permettant d'écrire `zb.database.from('users').select()`. |
-| `listCollections()` | `()` | `Promise<ZenbaseResponse<CollectionMetadata[]>>` | Retourne la liste de toutes les collections de l'application avec le nombre de documents et leur schéma éventuel. |
+| `listCollections()` | `()` | `Promise<ZenbaseResponse<ZenbaseCollectionSummary[]>>` | Retourne la liste de toutes les collections de l'application avec le nombre de documents et leur schéma éventuel. |
+| `createCollection(name, schema?)` | `(name: string, schema?: ZenbaseCollectionSchema \| null)` | `Promise<ZenbaseResponse<{ name: string; schema: ZenbaseCollectionSchema \| null }>>` | Crée explicitement une collection NoSQL (avec ou sans schéma de validation). |
+| `deleteCollection(name)` | `(name: string)` | `Promise<ZenbaseResponse<{ deleted: boolean; collection: string }>>` | Supprime définitivement une collection et l'ensemble de ses documents. |
 
 ### Exemple `listCollections()`
 
@@ -73,8 +79,10 @@ Toutes les opérations CRUD, le filtrage JSON1 et la gestion du schéma d'une co
 | Méthode | Signature | Description |
 | :--- | :--- | :--- |
 | `.where(field, operator, value)` | `(field: string, operator: FilterOperator, value?: unknown): this` | Ajoute un filtre `json_extract` sur un champ du document JSON. Si seulement 2 arguments sont fournis (`.where('active', true)`), l'opérateur `'=='` est utilisé implicitement. |
+| `.whereIn(field, values)` | `(field: string, values: unknown[]): this` | Raccourci expressif pour `.where(field, 'in', values)`. |
+| `.whereContains(field, value)` | `(field: string, value: string): this` | Raccourci expressif pour `.where(field, 'contains', value)`. |
 | `.orderBy(field, direction?)` | `(field: string, direction?: 'asc' \| 'desc'): this` | Trie les résultats sur un champ JSON ou système (`id`, `created_at`, `updated_at`). Par défaut `'asc'`. |
-| `.limit(count)` | `(count: number): this` | Limite le nombre maximal de documents retournés (plafonné à `500` par requête). |
+| `.limit(count)` | `(count: number): this` | Limite le nombre maximal de documents retournés (plafonné à `1000` par requête). |
 | `.offset(count)` | `(count: number): this` | Ignore les `count` premiers documents (utile pour la pagination par page). |
 
 #### Opérateurs `FilterOperator` acceptés par `.where()`
@@ -85,18 +93,25 @@ Toutes les opérations CRUD, le filtrage JSON1 et la gestion du schéma d'une co
 - `'contains'` ou `'like'` : Recherche partielle insensible à la casse (`LIKE %val%`)
 - `'in'` : Vérifie que la valeur appartient au tableau fourni (ex: `.where('role', 'in', ['admin', 'editor'])`)
 
-### Méthodes d'exécution CRUD & Schéma
+### Méthodes d'exécution CRUD, Agrégation & Schéma
 
 | Méthode | Signature | Retour | Description |
 | :--- | :--- | :--- | :--- |
 | `.get()` | `()` | `Promise<ZenbaseQueryResult<T>>` | Exécute la requête `SELECT` et retourne un tableau hybride itérable contenant également `{ data, error }`. |
 | `.select()` | `()` | `Promise<ZenbaseQueryResult<T>>` | Alias exact de `.get()`. |
+| `.first()` | `()` | `Promise<ZenbaseResponse<ZenbaseDocument<T> \| null>>` | Retourne uniquement le premier document correspondant aux filtres et au tri courant (ou `null`). |
+| `.count()` | `()` | `Promise<ZenbaseResponse<number>>` | Compte côté serveur le nombre de documents correspondant aux filtres courants. |
+| `.exists(id?)` | `(id?: string)` | `Promise<ZenbaseResponse<boolean>>` | Vérifie si un document précis (`id`) ou au moins un document correspondant aux filtres existe. |
+| `.paginate(options?)` | `(options?: ZenbasePaginateOptions)` | `Promise<ZenbaseResponse<ZenbasePaginatedResult<T>>>` | Pagine les documents côté serveur (`items`, `total`, `page`, `per_page`, `last_page`) avec recherche plein-texte optionnelle. |
 | `.find(id)` | `(id: string)` | `Promise<ZenbaseResponse<ZenbaseDocument<T>>>` | Récupère un document unique par son UUID `id`. |
 | `.create(document)` | `(document: T)` | `Promise<ZenbaseDocument<T> & ZenbaseResponse<ZenbaseDocument<T>>>` | Insère un nouveau document JSON (valide le schéma s'il existe) et génère son UUID. |
 | `.update(id, partial, replace?)` | `(id: string, partial: Partial<T>, replace?: boolean)` | `Promise<ZenbaseResponse<ZenbaseDocument<T>>>` | Met à jour un document. Par défaut `replace = false` (fusion partielle des clés JSON). Si `replace = true`, remplace tout le document. |
+| `.replace(id, document)` | `(id: string, document: T)` | `Promise<ZenbaseResponse<ZenbaseDocument<T>>>` | Remplace intégralement le document `id` (équivalent à `.update(id, document, true)`). |
+| `.upsert(id, document, replace?)` | `(id: string, document: T, replace?: boolean)` | `Promise<ZenbaseResponse<ZenbaseDocument<T>>>` | Met à jour le document `id` s'il existe, ou le crée automatiquement avec cet identifiant sinon. |
 | `.delete(id)` | `(id: string)` | `Promise<ZenbaseResponse<{ deleted: boolean; id: string }>>` | Supprime définitivement le document `id` de la collection. |
 | `.getSchema()` | `()` | `Promise<ZenbaseResponse<{ collection: string; schema: ZenbaseCollectionSchema \| null }>>` | Récupère la définition du schéma de la collection (ou `null` si Schema-less). |
 | `.setSchema(schema)` | `(schema: ZenbaseCollectionSchema \| null)` | `Promise<ZenbaseResponse<{ collection: string; schema: ZenbaseCollectionSchema \| null }>>` | Définit ou met à jour le schéma de la collection. Passez `null` pour désactiver le schéma. |
+| `.deleteCollection()` | `()` | `Promise<ZenbaseResponse<{ deleted: boolean; collection: string }>>` | Supprime la collection courante ainsi que tous ses documents. |
 
 ---
 
@@ -151,10 +166,14 @@ Accès : `zb.auth`
 | `sendOtp(email)` | `(email: string)` | `Promise<ZenbaseOtpDispatchResult>` | Génère et envoie un code OTP à 6 chiffres par e-mail (valide 10 minutes). |
 | `verifyOtp(email, code)` | `(email: string, code: string)` | `Promise<ZenbaseAuthSession>` | Vérifie le code OTP à 6 chiffres et ouvre une session authentifiée. |
 | `getUser()` | `()` | `Promise<ZenbaseResponse<{ user: ZenbaseUser }>>` | Interroge `/api/v1/auth/user` avec le token Bearer actif et met à jour le cache utilisateur. |
+| `updatePassword(current, next)` | `(currentPassword: string \| null, newPassword: string)` | `Promise<ZenbaseResponse<{ updated: boolean; user: ZenbaseUser }>>` | Modifie le mot de passe de l'utilisateur connecté après vérification du mot de passe actuel. |
 | `signOut()` | `()` | `Promise<ZenbaseResponse<{ signed_out: boolean }>>` | Révoque le token Bearer côté serveur et vide la session locale du SDK. |
+| `clearSession()` | `()` | `void` | Efface localement le token et l'utilisateur en cache sans appel réseau. |
+| `isAuthenticated()` | `()` | `boolean` | Retourne `true` si un token Bearer utilisateur est actuellement actif. |
 | `getToken()` | `()` | `string \| null` | Retourne le token Bearer actuellement configuré dans le client HTTP. |
 | `setToken(token)` | `(token: string \| null)` | `void` | Définit ou supprime manuellement le token Bearer d'authentification utilisateur. |
 | `getCachedUser()` | `()` | `ZenbaseUser \| null` | Retourne le dernier profil `ZenbaseUser` récupéré en mémoire sans effectuer d'appel réseau. |
+| `onAuthStateChange(callback)` | `(callback: ZenbaseAuthStateChangeCallback)` | `() => void` | Enregistre un écouteur appelé lors des événements `SIGNED_UP`, `SIGNED_IN`, `SIGNED_OUT`, `TOKEN_CHANGED` et `USER_UPDATED`. Retourne la fonction de désabonnement. |
 
 ---
 
@@ -164,9 +183,14 @@ Accès : `zb.storage`
 
 | Méthode | Signature | Retour | Description |
 | :--- | :--- | :--- | :--- |
-| `upload(path, file, options?)` | `(path: string, file: Blob \| File \| Uint8Array \| string, options?: UploadOptions)` | `Promise<ZenbaseUploadResult>` | Téléverse un fichier dans l'espace isolé du tenant. Retourne `{ url, fileUrl, data, error }`. |
+| `upload(path, file, options?)` | `(path: string, file: Blob \| File \| Uint8Array \| string, options?: UploadOptions)` | `Promise<ZenbaseUploadResult>` | Téléverse un fichier dans l'espace isolé du tenant (retourne une erreur HTTP `413` si le quota de stockage du compte est dépassé). Retourne `{ url, fileUrl, data, error }`. |
 | `list(folder?)` | `(folder?: string)` | `Promise<ZenbaseResponse<ZenbaseStoredFile[]>>` | Liste tous les fichiers de l'application, ou filtre uniquement ceux du dossier `folder` (ex: `'/avatars'`). |
+| `getUsage()` | `()` | `Promise<ZenbaseResponse<ZenbaseStorageUsage>>` | Retourne l'espace de stockage consommé par l'application et par le compte, ainsi que le quota maximal configuré (`max_storage_mb`, `remaining_bytes`). |
+| `getPublicUrl(fileIdOrPath)` | `(fileIdOrPath: string)` | `string` | Construit localement l'URL publique directe d'un fichier à partir de son UUID ou de son chemin. |
+| `getDownloadUrl(fileIdOrPath)` | `(fileIdOrPath: string)` | `string` | Construit localement l'URL de téléchargement forcé (`?download=1`) d'un fichier. |
+| `download(fileIdOrPath)` | `(fileIdOrPath: string)` | `Promise<ZenbaseResponse<Blob>>` | Télécharge le fichier binaire sous forme de `Blob`. |
 | `delete(fileIdOrPath)` | `(fileIdOrPath: string)` | `Promise<ZenbaseResponse<{ deleted: boolean; file: string }>>` | Supprime le fichier physique et son enregistrement par son UUID `id` ou son chemin relatif. |
+| `deleteMany(fileIdsOrPaths)` | `(fileIdsOrPaths: string[])` | `Promise<ZenbaseResponse<ZenbaseBatchDeleteResult>>` | Supprime plusieurs fichiers en parallèle et retourne `{ deleted, failed }`. |
 
 ### Options de `zb.storage.upload`
 
@@ -186,7 +210,8 @@ Accès : `zb.functions`
 
 | Méthode | Signature | Retour | Description |
 | :--- | :--- | :--- | :--- |
-| `invoke<TResponse>(functionName, payload?)` | `(functionName: string, payload?: Record<string, unknown>)` | `Promise<ZenbaseResponse<TResponse>>` | Exécute la Web Function PHP `functionName` avec les données `payload`. Le temps d'exécution est retourné dans `meta.duration_ms`. |
+| `list()` | `()` | `Promise<ZenbaseResponse<ZenbaseFunctionSummary[]>>` | Liste les Web Functions PHP actives disponibles pour l'application (nom, description, dates de création/mise à jour). |
+| `invoke<TResponse>(functionName, payload?, options?)` | `(functionName: string, payload?: Record<string, unknown>, options?: ZenbaseInvokeOptions)` | `Promise<ZenbaseResponse<TResponse>>` | Exécute la Web Function PHP `functionName` avec `payload` et des en-têtes HTTP optionnels (`options.headers`). Le temps d'exécution est retourné dans `meta.duration_ms`. |
 
 ---
 
@@ -202,11 +227,20 @@ import type {
   ZenbaseResponse,
   ZenbaseDocument,
   ZenbaseQueryResult,
+  ZenbasePaginatedResult,
+  ZenbasePaginateOptions,
+  ZenbaseCollectionSummary,
   ZenbaseUser,
   ZenbaseAuthSession,
+  ZenbaseAuthEvent,
+  ZenbaseAuthStateChangeCallback,
   ZenbaseOtpDispatchResult,
   ZenbaseStoredFile,
   ZenbaseUploadResult,
+  ZenbaseStorageUsage,
+  ZenbaseBatchDeleteResult,
+  ZenbaseFunctionSummary,
+  ZenbaseInvokeOptions,
   ZenbaseFieldType,
   ZenbaseSchemaField,
   ZenbaseCollectionSchema,

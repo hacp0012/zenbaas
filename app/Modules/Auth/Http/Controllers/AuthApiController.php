@@ -147,6 +147,48 @@ class AuthApiController extends Controller
     }
 
     /**
+     * Update the currently authenticated tenant user's password.
+     */
+    public function updatePassword(Request $request): JsonResponse
+    {
+        /** @var TenantUser|null $tenantUser */
+        $tenantUser = $request->attributes->get('current_tenant_user');
+
+        if (! $tenantUser) {
+            return response()->json([
+                'data' => null,
+                'error' => 'Utilisateur non authentifié.',
+            ], 401);
+        }
+
+        $validated = $request->validate([
+            'current_password' => ['nullable', 'string'],
+            'new_password' => ['required', 'string', 'min:6', 'max:255'],
+        ]);
+
+        try {
+            $updatedUser = $this->authManager->updatePassword(
+                $tenantUser,
+                $validated['current_password'] ?? null,
+                $validated['new_password'],
+            );
+
+            return response()->json([
+                'data' => [
+                    'updated' => true,
+                    'user' => $updatedUser,
+                ],
+                'error' => null,
+            ]);
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'data' => null,
+                'error' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
      * Sign out the currently authenticated tenant user.
      */
     public function signOut(Request $request): JsonResponse

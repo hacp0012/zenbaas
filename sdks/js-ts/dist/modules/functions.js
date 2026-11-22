@@ -4,11 +4,18 @@ export class FunctionsModule {
         this.http = http;
     }
     /**
+     * Liste les Web Functions PHP actives disponibles pour l'application courante.
+     */
+    async list() {
+        return this.http.request('GET', '/functions');
+    }
+    /**
      * Invoque une Web Function PHP serverless déployée sur Zenbase.
      */
-    async invoke(functionName, payload = {}) {
+    async invoke(functionName, payload = {}, options = {}) {
         return this.http.request('POST', `/functions/${encodeURIComponent(functionName)}/invoke`, {
             body: payload,
+            headers: options.headers,
         });
     }
 }

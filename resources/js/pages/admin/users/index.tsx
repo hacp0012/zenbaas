@@ -2,8 +2,10 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
     Ban,
+    Calendar,
     CalendarClock,
     CheckCircle2,
+    HardDrive,
     Infinity as InfinityIcon,
     Layers,
     Settings2,
@@ -44,11 +46,46 @@ type AdminUserRow = {
     is_suspended: boolean;
     is_expired: boolean;
     max_apps: number;
+    max_storage_mb: number | null;
+    used_storage_bytes: number;
     expires_at: string | null;
     apps_count: number;
     total_api_calls: number;
     created_at: string | null;
 };
+
+const STORAGE_PRESETS_MB = [
+    { label: '50 Mo', value: 50 },
+    { label: '100 Mo', value: 100 },
+    { label: '500 Mo', value: 500 },
+    { label: '1 Go', value: 1024 },
+    { label: '5 Go', value: 5120 },
+];
+
+function formatBytes(bytes: number): string {
+    if (!bytes || bytes <= 0) {
+        return '0 o';
+    }
+    const k = 1024;
+    const sizes = ['o', 'Ko', 'Mo', 'Go'];
+    const i = Math.min(
+        Math.floor(Math.log(bytes) / Math.log(k)),
+        sizes.length - 1,
+    );
+
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
+
+function formatStorageLimitMb(mb: number | null): string {
+    if (mb === null || mb === undefined) {
+        return 'Illimité';
+    }
+    if (mb >= 1024 && mb % 1024 === 0) {
+        return `${mb / 1024} Go`;
+    }
+
+    return `${mb} Mo`;
+}
 
 function toDateTimeLocalValue(iso: string | null): string {
     if (!iso) {
@@ -75,9 +112,14 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
         null,
     );
     const [quotaMaxApps, setQuotaMaxApps] = useState<number>(1);
+    const [quotaUnlimitedStorage, setQuotaUnlimitedStorage] =
+        useState<boolean>(false);
+    const [quotaMaxStorageMb, setQuotaMaxStorageMb] = useState<number>(100);
     const [quotaInfinite, setQuotaInfinite] = useState<boolean>(true);
     const [quotaExpiresAt, setQuotaExpiresAt] = useState<string>('');
     const [createInfinite, setCreateInfinite] = useState<boolean>(true);
+    const [createUnlimitedStorage, setCreateUnlimitedStorage] =
+        useState<boolean>(false);
 
     const form = useForm({
         name: '',
@@ -85,6 +127,7 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
         password: '',
         is_admin: false,
         max_apps: 1,
+        max_storage_mb: 100 as number | null,
         expires_at: '' as string,
     });
 
@@ -93,12 +136,17 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
         form.transform((data) => ({
             ...data,
             max_apps: Number(data.max_apps) || 1,
-            expires_at: createInfinite || !data.expires_at ? null : data.expires_at,
+            max_storage_mb: createUnlimitedStorage
+                ? null
+                : Math.max(1, Number(data.max_storage_mb) || 100),
+            expires_at:
+                createInfinite || !data.expires_at ? null : data.expires_at,
         }));
         form.post('/admin/users', {
             onSuccess: () => {
                 form.reset();
                 setCreateInfinite(true);
+                setCreateUnlimitedStorage(false);
             },
         });
     }
@@ -106,6 +154,13 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
     function openQuotaModal(user: AdminUserRow) {
         setUserToEditQuota(user);
         setQuotaMaxApps(user.max_apps ?? 1);
+        if (user.max_storage_mb === null || user.max_storage_mb === undefined) {
+            setQuotaUnlimitedStorage(true);
+            setQuotaMaxStorageMb(100);
+        } else {
+            setQuotaUnlimitedStorage(false);
+            setQuotaMaxStorageMb(user.max_storage_mb);
+        }
         if (user.expires_at) {
             setQuotaInfinite(false);
             setQuotaExpiresAt(toDateTimeLocalValue(user.expires_at));
@@ -124,7 +179,11 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
             `/admin/users/${userToEditQuota.id}/quota`,
             {
                 max_apps: Math.max(1, Number(quotaMaxApps) || 1),
-                expires_at: quotaInfinite || !quotaExpiresAt ? null : quotaExpiresAt,
+                max_storage_mb: quotaUnlimitedStorage
+                    ? null
+                    : Math.max(1, Number(quotaMaxStorageMb) || 100),
+                expires_at:
+                    quotaInfinite || !quotaExpiresAt ? null : quotaExpiresAt,
             },
             {
                 preserveScroll: true,
@@ -308,6 +367,59 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
 
                                         <div className="space-y-1.5">
                                             <div className="flex items-center justify-between">
+                                                <Label
+                                                    htmlFor="max_storage_mb"
+                                                    className="text-xs"
+                                                >
+                                                    Stockage max (Mo)
+                                                </Label>
+                                                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={
+                                                            createUnlimitedStorage
+                                                        }
+                                                        onChange={(e) =>
+                                                            setCreateUnlimitedStorage(
+                                                                e.target
+                                                                    .checked,
+                                                            )
+                                                        }
+                                                        className="size-3.5 rounded"
+                                                    />
+                                                    <span>Illimité</span>
+                                                </label>
+                                            </div>
+                                            {!createUnlimitedStorage && (
+                                                <Input
+                                                    id="max_storage_mb"
+                                                    type="number"
+                                                    min={1}
+                                                    max={1048576}
+                                                    value={
+                                                        form.data
+                                                            .max_storage_mb ??
+                                                        100
+                                                    }
+                                                    onChange={(e) =>
+                                                        form.setData(
+                                                            'max_storage_mb',
+                                                            Math.max(
+                                                                1,
+                                                                Number(
+                                                                    e.target
+                                                                        .value,
+                                                                ) || 1,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className="h-8 font-mono text-xs"
+                                                />
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center justify-between">
                                                 <Label className="text-xs">
                                                     Expiration du compte
                                                 </Label>
@@ -453,6 +565,19 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                                                         <div className="text-xs text-muted-foreground">
                                                             {user.email}
                                                         </div>
+                                                        {user.created_at && (
+                                                            <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground/80">
+                                                                <Calendar className="size-3" />
+                                                                <span>
+                                                                    Créé le{' '}
+                                                                    {new Date(
+                                                                        user.created_at,
+                                                                    ).toLocaleDateString(
+                                                                        'fr-FR',
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </td>
                                                     <td className="py-3">
                                                         <div className="flex flex-col gap-1">
@@ -498,7 +623,7 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                                                                 globale
                                                             </span>
                                                         ) : (
-                                                            <>
+                                                            <div className="space-y-1">
                                                                 <div className="flex items-center gap-1 font-mono font-medium">
                                                                     <Layers className="size-3.5 text-emerald-600" />
                                                                     <span>
@@ -509,14 +634,46 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                                                                         {user.max_apps ??
                                                                             1}{' '}
                                                                         app(s)
-                                                                        max
                                                                     </span>
                                                                 </div>
-                                                                <div className="text-muted-foreground">
+                                                                <div className="flex items-center gap-1 font-mono text-[11px]">
+                                                                    <HardDrive className="size-3 text-amber-500" />
+                                                                    <span>
+                                                                        {formatBytes(
+                                                                            user.used_storage_bytes ??
+                                                                                0,
+                                                                        )}{' '}
+                                                                        /{' '}
+                                                                        {formatStorageLimitMb(
+                                                                            user.max_storage_mb,
+                                                                        )}
+                                                                    </span>
+                                                                </div>
+                                                                {user.max_storage_mb !==
+                                                                    null && (
+                                                                    <div className="h-1.5 w-32 overflow-hidden rounded-full bg-muted">
+                                                                        <div
+                                                                            className={`h-full rounded-full transition-all ${
+                                                                                (user.used_storage_bytes ??
+                                                                                    0) /
+                                                                                    (user.max_storage_mb *
+                                                                                        1024 *
+                                                                                        1024) >=
+                                                                                0.9
+                                                                                    ? 'bg-red-500'
+                                                                                    : 'bg-emerald-500'
+                                                                            }`}
+                                                                            style={{
+                                                                                width: `${Math.min(100, Math.round(((user.used_storage_bytes ?? 0) / (user.max_storage_mb * 1024 * 1024)) * 100))}%`,
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                                <div className="text-[11px] text-muted-foreground">
                                                                     {user.total_api_calls.toLocaleString()}{' '}
                                                                     appels API
                                                                 </div>
-                                                            </>
+                                                            </div>
                                                         )}
                                                     </td>
                                                     <td className="py-3 text-right">
@@ -635,6 +792,101 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                                 {userToEditQuota?.apps_count ?? 0}{' '}
                                 application(s) créée(s). Par défaut : 1.
                             </p>
+                        </div>
+
+                        <div className="space-y-2 rounded-lg border p-3">
+                            <div className="flex items-center justify-between">
+                                <Label
+                                    htmlFor="edit-max-storage-mb"
+                                    className="text-xs font-semibold"
+                                >
+                                    Espace de stockage maximal (Mo)
+                                </Label>
+                                <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                    <input
+                                        type="checkbox"
+                                        checked={quotaUnlimitedStorage}
+                                        onChange={(e) =>
+                                            setQuotaUnlimitedStorage(
+                                                e.target.checked,
+                                            )
+                                        }
+                                        className="size-3.5 rounded"
+                                    />
+                                    <span>Stockage illimité</span>
+                                </label>
+                            </div>
+
+                            {quotaUnlimitedStorage ? (
+                                <p className="text-xs text-muted-foreground">
+                                    Aucune limite de stockage imposée à ce
+                                    client. Actuellement utilisé :{' '}
+                                    <span className="font-mono font-medium text-foreground">
+                                        {formatBytes(
+                                            userToEditQuota?.used_storage_bytes ??
+                                                0,
+                                        )}
+                                    </span>
+                                    .
+                                </p>
+                            ) : (
+                                <div className="space-y-2">
+                                    <Input
+                                        id="edit-max-storage-mb"
+                                        type="number"
+                                        min={1}
+                                        max={1048576}
+                                        value={quotaMaxStorageMb}
+                                        onChange={(e) =>
+                                            setQuotaMaxStorageMb(
+                                                Math.max(
+                                                    1,
+                                                    Number(e.target.value) || 1,
+                                                ),
+                                            )
+                                        }
+                                        className="font-mono text-xs"
+                                        required={!quotaUnlimitedStorage}
+                                    />
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {STORAGE_PRESETS_MB.map((preset) => (
+                                            <button
+                                                key={preset.value}
+                                                type="button"
+                                                onClick={() =>
+                                                    setQuotaMaxStorageMb(
+                                                        preset.value,
+                                                    )
+                                                }
+                                                className={`rounded-md border px-2 py-0.5 font-mono text-[11px] transition ${
+                                                    quotaMaxStorageMb ===
+                                                    preset.value
+                                                        ? 'border-emerald-600 bg-emerald-600 text-white'
+                                                        : 'bg-background hover:bg-muted'
+                                                }`}
+                                            >
+                                                {preset.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Actuellement consommé :{' '}
+                                        <span className="font-mono font-medium text-foreground">
+                                            {formatBytes(
+                                                userToEditQuota?.used_storage_bytes ??
+                                                    0,
+                                            )}
+                                        </span>{' '}
+                                        sur{' '}
+                                        <span className="font-mono font-medium text-foreground">
+                                            {formatStorageLimitMb(
+                                                quotaMaxStorageMb,
+                                            )}
+                                        </span>{' '}
+                                        (cumulé sur toutes ses applications).
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-2 rounded-lg border p-3">

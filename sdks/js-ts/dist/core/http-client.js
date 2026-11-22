@@ -1,8 +1,10 @@
 export class HttpClient {
     baseUrl;
+    originUrl;
     apiKey;
     customHeaders;
     fetchImpl;
+    timeoutMs;
     userToken = null;
     constructor(config) {
         if (!config.endpoint) {
@@ -15,9 +17,35 @@ export class HttpClient {
         this.baseUrl = trimmedEndpoint.endsWith('/api/v1')
             ? trimmedEndpoint
             : `${trimmedEndpoint}/api/v1`;
+        this.originUrl = this.baseUrl.replace(/\/api\/v1$/, '');
         this.apiKey = config.apiKey;
-        this.customHeaders = config.headers ?? {};
+        this.customHeaders = { ...(config.headers ?? {}) };
         this.fetchImpl = config.fetch ?? globalThis.fetch.bind(globalThis);
+        this.timeoutMs = config.timeoutMs;
+    }
+    /**
+     * Retourne l'URL de base de l'API (`/api/v1`).
+     */
+    getBaseUrl() {
+        return this.baseUrl;
+    }
+    /**
+     * Retourne l'URL racine de l'instance Zenbase (sans `/api/v1`).
+     */
+    getOriginUrl() {
+        return this.originUrl;
+    }
+    /**
+     * Ajoute ou met à jour un en-tête HTTP personnalisé global.
+     */
+    setHeader(key, value) {
+        this.customHeaders[key] = value;
+    }
+    /**
+     * Supprime un en-tête HTTP personnalisé global.
+     */
+    removeHeader(key) {
+        delete this.customHeaders[key];
     }
     /**
      * Définit le token d'accès de l'utilisateur authentifié (`zb_token_...`).
@@ -63,11 +91,13 @@ export class HttpClient {
                 }
             }
         }
+        const { signal, cleanup } = this.createTimeoutSignal();
         try {
             const response = await this.fetchImpl(url.toString(), {
                 method,
                 headers: this.buildHeaders(options.headers),
                 body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+                signal,
             });
             const json = (await response.json().catch(() => null));
             if (!response.ok) {
@@ -91,6 +121,9 @@ export class HttpClient {
                 error: err instanceof Error ? err.message : 'Erreur réseau inconnue',
             };
         }
+        finally {
+            cleanup();
+        }
     }
     /**
      * Exécute une requête multipart/form-data (upload de fichier) vers Zenbase Storage.
@@ -98,11 +131,13 @@ export class HttpClient {
     async uploadMultipart(path, formData) {
         const cleanPath = path.startsWith('/') ? path : `/${path}`;
         const url = `${this.baseUrl}${cleanPath}`;
+        const { signal, cleanup } = this.createTimeoutSignal();
         try {
             const response = await this.fetchImpl(url, {
                 method: 'POST',
                 headers: this.buildHeaders({}, true),
                 body: formData,
+                signal,
             });
             const json = (await response.json().catch(() => null));
             if (!response.ok) {
@@ -126,6 +161,58 @@ export class HttpClient {
                 error: err instanceof Error ? err.message : 'Erreur réseau lors de l\'upload',
             };
         }
+        finally {
+            cleanup();
+        }
+    }
+    /**
+     * Télécharge une ressource binaire (Blob) depuis une URL absolue ou relative à l'instance Zenbase.
+     */
+    async downloadBlob(urlOrPath) {
+        const targetUrl = /^https?:\/\//i.test(urlOrPath)
+            ? urlOrPath
+            : `${this.originUrl}${urlOrPath.startsWith('/') ? urlOrPath : `/${urlOrPath}`}`;
+        const { signal, cleanup } = this.createTimeoutSignal();
+        try {
+            const response = await this.fetchImpl(targetUrl, {
+                method: 'GET',
+                headers: {
+                    ...this.customHeaders,
+                },
+                signal,
+            });
+            if (!response.ok) {
+                return {
+                    data: null,
+                    error: `Erreur HTTP ${response.status} lors du téléchargement.`,
+                };
+            }
+            const blob = await response.blob();
+            return {
+                data: blob,
+                error: null,
+            };
+        }
+        catch (err) {
+            return {
+                data: null,
+                error: err instanceof Error ? err.message : 'Erreur réseau lors du téléchargement',
+            };
+        }
+        finally {
+            cleanup();
+        }
+    }
+    createTimeoutSignal() {
+        if (!this.timeoutMs || this.timeoutMs <= 0 || typeof AbortController === 'undefined') {
+            return { signal: undefined, cleanup: () => { } };
+        }
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+        return {
+            signal: controller.signal,
+            cleanup: () => clearTimeout(timer),
+        };
     }
 }
 //# sourceMappingURL=http-client.js.map

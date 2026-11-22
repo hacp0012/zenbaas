@@ -23,6 +23,24 @@ export class Zenbase {
     collection(name) {
         return this.database.collection(name);
     }
+    /**
+     * Ajoute ou met à jour un en-tête HTTP personnalisé envoyé avec toutes les requêtes SDK.
+     */
+    setHeader(key, value) {
+        this.http.setHeader(key, value);
+    }
+    /**
+     * Supprime un en-tête HTTP personnalisé précédemment configuré.
+     */
+    removeHeader(key) {
+        this.http.removeHeader(key);
+    }
+    /**
+     * Retourne l'URL de base de la passerelle API Zenbase (`/api/v1`).
+     */
+    getEndpoint() {
+        return this.http.getBaseUrl();
+    }
 }
 /**
  * Alias de `Zenbase` pour la compatibilité avec `new BaaSClient({ endpoint, apiKey })`.

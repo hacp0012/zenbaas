@@ -136,6 +136,18 @@ export class CollectionQueryBuilder {
         return this;
     }
     /**
+     * Raccourci pour `.where(field, 'in', values)`.
+     */
+    whereIn(field, values) {
+        return this.where(field, 'in', values);
+    }
+    /**
+     * Raccourci pour `.where(field, 'contains', value)`.
+     */
+    whereContains(field, value) {
+        return this.where(field, 'contains', value);
+    }
+    /**
      * Trie les documents par un champ JSON ou une colonne système (`created_at`, `updated_at`, `id`).
      */
     orderBy(field, direction = 'asc') {
@@ -191,6 +203,64 @@ export class CollectionQueryBuilder {
         return this.get();
     }
     /**
+     * Retourne uniquement le premier document correspondant aux filtres et au tri courant (ou `null`).
+     */
+    async first() {
+        const previousLimit = this.limitValue;
+        this.limitValue = 1;
+        const result = await this.get();
+        this.limitValue = previousLimit;
+        return {
+            data: result.data[0] ?? null,
+            error: result.error,
+        };
+    }
+    /**
+     * Compte le nombre de documents correspondant aux filtres courants sans transférer les documents.
+     */
+    async count() {
+        const query = {};
+        if (this.filters.length > 0) {
+            query.where = JSON.stringify(this.filters);
+        }
+        const response = await this.http.request('GET', `/collections/${encodeURIComponent(this.collectionName)}/count`, { query });
+        return {
+            data: response.data ? response.data.count : null,
+            error: response.error,
+        };
+    }
+    /**
+     * Vérifie si un document existe (par son `id` ou selon les filtres courants).
+     */
+    async exists(id) {
+        if (id) {
+            const response = await this.find(id);
+            if (response.data) {
+                return { data: true, error: null };
+            }
+            return { data: false, error: null };
+        }
+        const counted = await this.count();
+        return {
+            data: counted.data !== null ? counted.data > 0 : null,
+            error: counted.error,
+        };
+    }
+    /**
+     * Pagine les documents de la collection côté serveur avec recherche plein-texte optionnelle.
+     */
+    async paginate(options = {}) {
+        return this.http.request('GET', `/collections/${encodeURIComponent(this.collectionName)}/paginate`, {
+            query: {
+                page: options.page ?? 1,
+                per_page: options.perPage ?? 25,
+                search: options.search,
+                orderBy: options.orderBy ?? this.sortField,
+                direction: options.direction ?? this.sortDirection,
+            },
+        });
+    }
+    /**
      * Récupère un document unique par son identifiant UUID.
      */
     async find(id) {
@@ -201,7 +271,7 @@ export class CollectionQueryBuilder {
      */
     async create(document) {
         const response = await this.http.request('POST', `/collections/${encodeURIComponent(this.collectionName)}/records`, { body: document });
-        const created = (response.data ?? {});
+        const created = response.data ?? {};
         return Object.assign({}, created, {
             data: response.data,
             error: response.error,
@@ -215,6 +285,24 @@ export class CollectionQueryBuilder {
             body: {
                 ...partialDocument,
                 _replace: replace,
+            },
+        });
+    }
+    /**
+     * Remplace intégralement le contenu JSON d'un document existant (équivalent à `.update(id, doc, true)`).
+     */
+    async replace(id, document) {
+        return this.update(id, document, true);
+    }
+    /**
+     * Met à jour un document s'il existe déjà sous cet `id`, ou le crée automatiquement sinon.
+     */
+    async upsert(id, document, replace = false) {
+        return this.http.request('PUT', `/collections/${encodeURIComponent(this.collectionName)}/records/${encodeURIComponent(id)}`, {
+            body: {
+                ...document,
+                _replace: replace,
+                _upsert: true,
             },
         });
     }
@@ -235,6 +323,12 @@ export class CollectionQueryBuilder {
      */
     async setSchema(schema) {
         return this.http.request('PUT', `/collections/${encodeURIComponent(this.collectionName)}/schema`, { body: { schema } });
+    }
+    /**
+     * Supprime cette collection ainsi que tous ses documents.
+     */
+    async deleteCollection() {
+        return this.http.request('DELETE', `/collections/${encodeURIComponent(this.collectionName)}`);
     }
 }
 export class DatabaseModule {
@@ -260,6 +354,23 @@ export class DatabaseModule {
      */
     async listCollections() {
         return this.http.request('GET', '/collections');
+    }
+    /**
+     * Crée explicitement une collection NoSQL (avec un schéma de validation optionnel).
+     */
+    async createCollection(name, schema) {
+        return this.http.request('POST', '/collections', {
+            body: {
+                name,
+                schema: schema ?? null,
+            },
+        });
+    }
+    /**
+     * Supprime définitivement une collection et l'ensemble de ses documents.
+     */
+    async deleteCollection(name) {
+        return this.http.request('DELETE', `/collections/${encodeURIComponent(name)}`);
     }
 }
 //# sourceMappingURL=database.js.map

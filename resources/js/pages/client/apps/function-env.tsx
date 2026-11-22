@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import ClientAppLayout from '@/layouts/client-app-layout';
+import { dashboard } from '@/routes';
 import type { ZenbaseApp } from '@/types';
 
 type EnvEntry = {
@@ -636,3 +636,20 @@ export default function ClientAppFunctionEnv({
         </>
     );
 }
+
+ClientAppFunctionEnv.layout = {
+    breadcrumbs: [
+        {
+            title: 'Mes Applications',
+            href: dashboard(),
+        },
+        {
+            title: 'Edge / Web Functions PHP',
+            href: '#',
+        },
+        {
+            title: "Variables d'Env (.env)",
+            href: '#',
+        },
+    ],
+};

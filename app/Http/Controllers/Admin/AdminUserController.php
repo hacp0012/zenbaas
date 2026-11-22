@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppFile;
 use App\Models\User;
 use App\Modules\Storage\Services\StorageManagerService;
 use App\Services\TenantManagerService;
@@ -24,6 +25,12 @@ class AdminUserController extends Controller
      */
     public function index(): Response
     {
+        $storageByUser = AppFile::query()
+            ->join('apps', 'app_files.app_id', '=', 'apps.id')
+            ->selectRaw('apps.user_id, COALESCE(SUM(app_files.size), 0) as total_bytes')
+            ->groupBy('apps.user_id')
+            ->pluck('total_bytes', 'user_id');
+
         $users = User::query()
             ->withCount('apps')
             ->withSum('apps', 'api_calls_count')
@@ -38,6 +45,8 @@ class AdminUserController extends Controller
                 'is_suspended' => $user->isSuspendedOrExpired(),
                 'is_expired' => $user->isExpired(),
                 'max_apps' => (int) ($user->max_apps ?? 1),
+                'max_storage_mb' => $user->max_storage_mb !== null ? (int) $user->max_storage_mb : null,
+                'used_storage_bytes' => (int) ($storageByUser[$user->id] ?? 0),
                 'expires_at' => $user->expires_at?->toIso8601String(),
                 'apps_count' => $user->apps_count,
                 'total_api_calls' => (int) ($user->apps_sum_api_calls_count ?? 0),
@@ -60,8 +69,13 @@ class AdminUserController extends Controller
             'password' => ['required', 'string', 'min:8', 'max:255'],
             'is_admin' => ['sometimes', 'boolean'],
             'max_apps' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'max_storage_mb' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:1048576'],
             'expires_at' => ['nullable', 'date'],
         ]);
+
+        $maxStorageMb = array_key_exists('max_storage_mb', $validated)
+            ? ($validated['max_storage_mb'] !== null ? (int) $validated['max_storage_mb'] : null)
+            : 100;
 
         User::query()->create([
             'name' => $validated['name'],
@@ -70,6 +84,7 @@ class AdminUserController extends Controller
             'is_admin' => (bool) ($validated['is_admin'] ?? false),
             'is_suspended' => false,
             'max_apps' => (int) ($validated['max_apps'] ?? 1),
+            'max_storage_mb' => $maxStorageMb,
             'expires_at' => ! empty($validated['expires_at']) ? $validated['expires_at'] : null,
             'email_verified_at' => now(),
         ]);
@@ -78,17 +93,25 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Update a client's application quota (`max_apps`) and account expiration date (`expires_at`).
+     * Update a client's application quota (`max_apps`), storage limit (`max_storage_mb`), and expiration date (`expires_at`).
      */
     public function updateQuota(Request $request, User $user): RedirectResponse
     {
         $validated = $request->validate([
             'max_apps' => ['required', 'integer', 'min:1', 'max:1000'],
+            'max_storage_mb' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:1048576'],
             'expires_at' => ['nullable', 'date'],
         ]);
 
         $wasExpired = $user->isExpired();
         $user->max_apps = (int) $validated['max_apps'];
+
+        if (array_key_exists('max_storage_mb', $validated)) {
+            $user->max_storage_mb = $validated['max_storage_mb'] !== null
+                ? (int) $validated['max_storage_mb']
+                : null;
+        }
+
         $user->expires_at = ! empty($validated['expires_at']) ? $validated['expires_at'] : null;
 
         if ($user->isExpired()) {
@@ -99,7 +122,7 @@ class AdminUserController extends Controller
 
         $user->save();
 
-        return back()->with('success', "Quotas et date d'expiration de « {$user->name} » enregistrés.");
+        return back()->with('success', "Quotas, limite de stockage et date d'expiration de « {$user->name} » enregistrés.");
     }
 
     /**

@@ -2,7 +2,6 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     BookOpen,
-    Code2,
     Cpu,
     Database,
     FolderOpen,
@@ -121,11 +120,6 @@ export function ClientAppSidebar() {
             title: 'Documentation SDK (/docs)',
             href: '/docs',
             icon: BookOpen,
-        },
-        {
-            title: 'Stubs IDE (PHP Functions)',
-            href: '/dashboard/stubs/zenbase-stubs.php',
-            icon: Code2,
         },
     ];
 

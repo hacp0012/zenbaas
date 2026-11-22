@@ -15,6 +15,10 @@ export interface ZenbaseConfig {
      * Implémentation personnalisée de `fetch` (utile pour les tests ou environnements spécifiques)
      */
     fetch?: typeof fetch;
+    /**
+     * Délai maximal en millisecondes avant l'annulation automatique d'une requête HTTP
+     */
+    timeoutMs?: number;
 }
 export type FilterOperator = '==' | '=' | '!=' | '<>' | '>' | '>=' | '<' | '<=' | 'contains' | 'like' | 'in';
 export interface QueryFilter {
@@ -38,6 +42,26 @@ export type ZenbaseQueryResult<T = Record<string, unknown>> = Array<ZenbaseDocum
     data: Array<ZenbaseDocument<T>>;
     error: string | null;
 };
+export interface ZenbasePaginatedResult<T = Record<string, unknown>> {
+    items: Array<ZenbaseDocument<T>>;
+    total: number;
+    page: number;
+    per_page: number;
+    last_page: number;
+}
+export interface ZenbasePaginateOptions {
+    page?: number;
+    perPage?: number;
+    search?: string;
+    orderBy?: string;
+    direction?: 'asc' | 'desc';
+}
+export interface ZenbaseCollectionSummary {
+    name: string;
+    count: number;
+    schema: ZenbaseCollectionSchema | null;
+    created_at: string | null;
+}
 export interface ZenbaseUser {
     id: string;
     email: string;
@@ -55,6 +79,11 @@ export interface ZenbaseAuthSession {
     } | null;
     error: string | null;
 }
+export type ZenbaseAuthEvent = 'SIGNED_UP' | 'SIGNED_IN' | 'SIGNED_OUT' | 'TOKEN_CHANGED' | 'USER_UPDATED';
+export type ZenbaseAuthStateChangeCallback = (event: ZenbaseAuthEvent, session: {
+    user: ZenbaseUser | null;
+    token: string | null;
+}) => void;
 export interface ZenbaseOtpDispatchResult {
     email: string | null;
     expires_at: string | null;
@@ -80,6 +109,31 @@ export interface ZenbaseUploadResult {
     fileUrl: string | null;
     data: ZenbaseStoredFile | null;
     error: string | null;
+}
+export interface ZenbaseStorageUsage {
+    app_bytes: number;
+    app_files_count: number;
+    user_used_bytes: number;
+    max_storage_mb: number | null;
+    max_storage_bytes: number | null;
+    remaining_bytes: number | null;
+}
+export interface ZenbaseBatchDeleteResult {
+    deleted: string[];
+    failed: Array<{
+        file: string;
+        error: string;
+    }>;
+}
+export interface ZenbaseFunctionSummary {
+    name: string;
+    description: string | null;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string | null;
+}
+export interface ZenbaseInvokeOptions {
+    headers?: Record<string, string>;
 }
 export type ZenbaseFieldType = 'string' | 'number' | 'boolean' | 'object' | 'array' | 'blob';
 export interface ZenbaseSchemaField {

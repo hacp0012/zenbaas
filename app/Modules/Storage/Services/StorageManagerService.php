@@ -4,6 +4,8 @@ namespace App\Modules\Storage\Services;
 
 use App\Models\App;
 use App\Models\AppFile;
+use App\Models\User;
+use App\Modules\Storage\Exceptions\StorageQuotaExceededException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -11,6 +13,93 @@ use Illuminate\Support\Str;
 
 class StorageManagerService
 {
+    /**
+     * Ensure that the application owner has enough remaining storage quota for incoming bytes.
+     *
+     * @throws StorageQuotaExceededException
+     */
+    public function ensureStorageQuotaAvailable(App $app, int $incomingBytes): void
+    {
+        $owner = $app->user;
+
+        if (! $owner || $owner->is_admin) {
+            return;
+        }
+
+        $maxBytes = $owner->maxStorageBytes();
+
+        if ($maxBytes === null) {
+            return;
+        }
+
+        $usedBytes = $this->getUserUsedStorageBytes($owner);
+
+        if (($usedBytes + max(0, $incomingBytes)) > $maxBytes) {
+            $maxMb = (int) $owner->max_storage_mb;
+            $usedFormatted = $this->formatBytes($usedBytes);
+            $incomingFormatted = $this->formatBytes(max(0, $incomingBytes));
+
+            throw new StorageQuotaExceededException(
+                "Quota de stockage dépassé : votre compte est limité à {$maxMb} Mo ({$usedFormatted} déjà utilisés, +{$incomingFormatted} demandés). Supprimez des fichiers ou contactez l'administrateur."
+            );
+        }
+    }
+
+    /**
+     * Get the total bytes currently stored across all applications owned by the user.
+     */
+    public function getUserUsedStorageBytes(User $user): int
+    {
+        return $user->usedStorageBytes();
+    }
+
+    /**
+     * Return a detailed storage usage and quota summary for the given application and its owner.
+     *
+     * @return array{
+     *     app_bytes: int,
+     *     app_files_count: int,
+     *     user_used_bytes: int,
+     *     max_storage_mb: int|null,
+     *     max_storage_bytes: int|null,
+     *     remaining_bytes: int|null
+     * }
+     */
+    public function getStorageUsageSummary(App $app): array
+    {
+        $owner = $app->user;
+        $appBytes = (int) $app->files()->sum('size');
+        $appFilesCount = (int) $app->files()->count();
+        $userUsedBytes = $owner ? $this->getUserUsedStorageBytes($owner) : $appBytes;
+        $maxStorageMb = ($owner && ! $owner->is_admin) ? $owner->max_storage_mb : null;
+        $maxStorageBytes = ($owner && ! $owner->is_admin) ? $owner->maxStorageBytes() : null;
+        $remainingBytes = $maxStorageBytes !== null ? max(0, $maxStorageBytes - $userUsedBytes) : null;
+
+        return [
+            'app_bytes' => $appBytes,
+            'app_files_count' => $appFilesCount,
+            'user_used_bytes' => $userUsedBytes,
+            'max_storage_mb' => $maxStorageMb,
+            'max_storage_bytes' => $maxStorageBytes,
+            'remaining_bytes' => $remainingBytes,
+        ];
+    }
+
+    /**
+     * Format a byte count into a human-readable French unit string.
+     */
+    public function formatBytes(int $bytes): string
+    {
+        if ($bytes <= 0) {
+            return '0 o';
+        }
+
+        $units = ['o', 'Ko', 'Mo', 'Go'];
+        $power = min((int) floor(log($bytes, 1024)), count($units) - 1);
+
+        return round($bytes / (1024 ** $power), 2).' '.$units[$power];
+    }
+
     /**
      * Upload a file for the given application into its isolated storage directory.
      */
@@ -21,6 +110,8 @@ class StorageManagerService
         ?string $folder = null,
         string $disk = 'public',
     ): AppFile {
+        $this->ensureStorageQuotaAvailable($app, (int) $file->getSize());
+
         $normalizedFolder = $this->normalizeFolder($folder, $customPath);
         $originalName = $file->getClientOriginalName();
 
@@ -60,6 +151,8 @@ class StorageManagerService
         string $mimeType = 'text/plain',
         string $disk = 'public',
     ): AppFile {
+        $this->ensureStorageQuotaAvailable($app, strlen($contents));
+
         $normalizedFolder = $this->normalizeFolder(null, $relativePath);
         $cleanRelative = ltrim(str_replace(['\\', '..'], ['/', ''], $relativePath), '/');
         $filename = basename($cleanRelative) ?: 'file-'.Str::random(6).'.txt';

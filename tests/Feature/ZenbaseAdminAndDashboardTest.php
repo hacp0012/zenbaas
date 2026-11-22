@@ -387,6 +387,84 @@ test('public sdk documentation page reads markdown files from /docs and each sdk
         );
 });
 
+test('admin can set user max storage quota and uploads exceeding the limit are rejected', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->admin()->create();
+    $client = User::factory()->create(['max_storage_mb' => 1]);
+    $app = App::factory()->for($client)->create();
+
+    // Admin creates a user with custom storage quota
+    $this->actingAs($admin)
+        ->post(route('admin.users.store'), [
+            'name' => 'Dev Quota Stockage',
+            'email' => 'storage-dev@zenbase.test',
+            'password' => 'password123',
+            'max_apps' => 2,
+            'max_storage_mb' => 250,
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('users', [
+        'email' => 'storage-dev@zenbase.test',
+        'max_storage_mb' => 250,
+    ]);
+
+    // Upload within 1 MB limit succeeds (600 KB)
+    $this->actingAs($client)
+        ->post(route('dashboard.apps.files.store', $app), [
+            'file' => UploadedFile::fake()->create('part1.bin', 600),
+            'folder' => '/uploads',
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    // Second upload (600 KB -> 1.2 MB total > 1 MB quota) is rejected
+    $this->actingAs($client)
+        ->post(route('dashboard.apps.files.store', $app), [
+            'file' => UploadedFile::fake()->create('part2.bin', 600),
+            'folder' => '/uploads',
+        ])
+        ->assertSessionHasErrors('file');
+
+    expect($app->files()->count())->toBe(1);
+
+    // Admin increases client max_storage_mb to 5 MB
+    $this->actingAs($admin)
+        ->patch(route('admin.users.update_quota', $client), [
+            'max_apps' => 1,
+            'max_storage_mb' => 5,
+            'expires_at' => null,
+        ])
+        ->assertRedirect();
+
+    expect($client->fresh()->max_storage_mb)->toBe(5);
+
+    // Second upload now succeeds
+    $this->actingAs($client->fresh())
+        ->post(route('dashboard.apps.files.store', $app), [
+            'file' => UploadedFile::fake()->create('part2.bin', 600),
+            'folder' => '/uploads',
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($app->files()->count())->toBe(2);
+
+    // Admin sets unlimited storage (null)
+    $this->actingAs($admin)
+        ->patch(route('admin.users.update_quota', $client), [
+            'max_apps' => 1,
+            'max_storage_mb' => null,
+            'expires_at' => null,
+        ])
+        ->assertRedirect();
+
+    expect($client->fresh()->max_storage_mb)->toBeNull();
+
+    app(TenantManagerService::class)->deleteDatabase($app);
+});
+
 test('unavailable routes render the custom 404 inertia page', function () {
     $this->get('/route-inexistante-zenbase')
         ->assertNotFound()

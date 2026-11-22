@@ -96,7 +96,13 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                     {!isAdmin && (
                         <div className="flex flex-wrap items-center gap-2">
                             <Badge variant="outline" className="px-3 py-1 font-mono text-xs">
-                                Quota : {apps.length} / {auth?.user?.max_apps ?? 1} application(s)
+                                Apps : {apps.length} / {auth?.user?.max_apps ?? 1}
+                            </Badge>
+                            <Badge variant="outline" className="px-3 py-1 font-mono text-xs">
+                                Stockage : {formatBytes(Number(auth?.user?.used_storage_bytes ?? 0))} /{' '}
+                                {auth?.user?.max_storage_mb != null
+                                    ? `${auth.user.max_storage_mb} Mo`
+                                    : 'Illimité'}
                             </Badge>
                             <Badge
                                 variant="secondary"

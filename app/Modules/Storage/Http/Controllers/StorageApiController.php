@@ -4,6 +4,7 @@ namespace App\Modules\Storage\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\App;
+use App\Modules\Storage\Exceptions\StorageQuotaExceededException;
 use App\Modules\Storage\Services\StorageManagerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,20 @@ class StorageApiController extends Controller
     }
 
     /**
+     * Return storage usage and quota statistics for the current application and its owner.
+     */
+    public function usage(Request $request): JsonResponse
+    {
+        /** @var App $app */
+        $app = $request->attributes->get('current_app');
+
+        return response()->json([
+            'data' => $this->storageManager->getStorageUsageSummary($app),
+            'error' => null,
+        ]);
+    }
+
+    /**
      * Upload a file to the current application's isolated storage.
      */
     public function upload(Request $request): JsonResponse
@@ -43,12 +58,21 @@ class StorageApiController extends Controller
         /** @var App $app */
         $app = $request->attributes->get('current_app');
 
-        $appFile = $this->storageManager->upload(
-            $app,
-            $request->file('file'),
-            $request->string('path')->toString() ?: null,
-            $request->string('folder')->toString() ?: null,
-        );
+        try {
+            $appFile = $this->storageManager->upload(
+                $app,
+                $request->file('file'),
+                $request->string('path')->toString() ?: null,
+                $request->string('folder')->toString() ?: null,
+            );
+        } catch (StorageQuotaExceededException $e) {
+            return response()->json([
+                'url' => null,
+                'fileUrl' => null,
+                'data' => null,
+                'error' => $e->getMessage(),
+            ], 413);
+        }
 
         return response()->json([
             'url' => $appFile->url,

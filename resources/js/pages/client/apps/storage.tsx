@@ -58,6 +58,15 @@ type StorageStats = {
     images_count: number;
 };
 
+type StorageQuota = {
+    app_bytes: number;
+    app_files_count: number;
+    user_used_bytes: number;
+    max_storage_mb: number | null;
+    max_storage_bytes: number | null;
+    remaining_bytes: number | null;
+};
+
 type StorageFilters = {
     search: string;
     folder: string;
@@ -157,12 +166,14 @@ export default function ClientAppStorage({
     paginatedFiles,
     allFolders = ['/'],
     storageStats,
+    storageQuota,
     storageFilters,
 }: {
     app: ZenbaseApp;
     paginatedFiles?: PaginatedFiles;
     allFolders?: string[];
     storageStats?: StorageStats;
+    storageQuota?: StorageQuota;
     storageFilters?: StorageFilters;
 }) {
     const files: ZenbaseFile[] = paginatedFiles?.items ?? app.files ?? [];
@@ -466,13 +477,58 @@ export default function ClientAppStorage({
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span>Volume disque :</span>
+                                    <span>Volume app :</span>
                                     <span className="font-mono text-foreground">
                                         {formatBytes(
                                             storageStats?.total_bytes ?? 0,
                                         )}
                                     </span>
                                 </div>
+                                {storageQuota && (
+                                    <div className="mt-2 space-y-1.5 border-t pt-2">
+                                        <div className="flex justify-between">
+                                            <span>Quota compte :</span>
+                                            <span className="font-mono text-foreground">
+                                                {formatBytes(
+                                                    storageQuota.user_used_bytes,
+                                                )}{' '}
+                                                /{' '}
+                                                {storageQuota.max_storage_mb !==
+                                                null
+                                                    ? `${storageQuota.max_storage_mb} Mo`
+                                                    : 'Illimité'}
+                                            </span>
+                                        </div>
+                                        {storageQuota.max_storage_bytes !==
+                                            null && (
+                                            <>
+                                                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all ${
+                                                            storageQuota.user_used_bytes /
+                                                                storageQuota.max_storage_bytes >=
+                                                            0.9
+                                                                ? 'bg-red-500'
+                                                                : 'bg-emerald-500'
+                                                        }`}
+                                                        style={{
+                                                            width: `${Math.min(100, Math.round((storageQuota.user_used_bytes / storageQuota.max_storage_bytes) * 100))}%`,
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="flex justify-between text-[11px]">
+                                                    <span>Disponible :</span>
+                                                    <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                                                        {formatBytes(
+                                                            storageQuota.remaining_bytes ??
+                                                                0,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -990,6 +1046,11 @@ export default function ClientAppStorage({
                                 <p className="text-xs text-emerald-600">
                                     {uploadForm.data.files.length} fichier(s)
                                     prêt(s) à être téléversé(s).
+                                </p>
+                            )}
+                            {uploadForm.errors.files && (
+                                <p className="text-xs text-red-500">
+                                    {uploadForm.errors.files}
                                 </p>
                             )}
                         </div>

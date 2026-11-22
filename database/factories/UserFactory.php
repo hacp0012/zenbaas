@@ -32,6 +32,7 @@ class UserFactory extends Factory
             'is_admin' => false,
             'is_suspended' => false,
             'max_apps' => 1,
+            'max_storage_mb' => 100,
             'expires_at' => null,
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,

@@ -24,6 +24,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property bool $is_admin
  * @property bool $is_suspended
  * @property int $max_apps
+ * @property int|null $max_storage_mb
  * @property Carbon|null $expires_at
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
@@ -32,7 +33,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'is_admin', 'is_suspended', 'max_apps', 'expires_at'])]
+#[Fillable(['name', 'email', 'password', 'is_admin', 'is_suspended', 'max_apps', 'max_storage_mb', 'expires_at'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
@@ -66,6 +67,28 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     }
 
     /**
+     * Return the user's maximum allowed storage quota in bytes, or null when unlimited.
+     */
+    public function maxStorageBytes(): ?int
+    {
+        if ($this->max_storage_mb === null) {
+            return null;
+        }
+
+        return max(1, (int) $this->max_storage_mb) * 1024 * 1024;
+    }
+
+    /**
+     * Calculate the total file storage currently consumed across all applications owned by the user.
+     */
+    public function usedStorageBytes(): int
+    {
+        return (int) AppFile::query()
+            ->whereIn('app_id', $this->apps()->select('id'))
+            ->sum('size');
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -78,6 +101,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'is_admin' => 'boolean',
             'is_suspended' => 'boolean',
             'max_apps' => 'integer',
+            'max_storage_mb' => 'integer',
             'expires_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
         ];

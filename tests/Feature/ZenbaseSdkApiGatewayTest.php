@@ -226,5 +226,100 @@ PHP,
 
     expect($notifications->json('data'))->toHaveCount(1);
 
+    // List active functions via SDK API (without leaking code or secrets)
+    $listFunctions = $this->getJson('/api/v1/functions', [
+        'X-Zenbase-Api-Key' => $app->public_key,
+    ])->assertOk();
+
+    expect($listFunctions->json('data'))->toHaveCount(1);
+    expect($listFunctions->json('data.0.name'))->toBe('send-welcome-email');
+    expect($listFunctions->json('data.0'))->not->toHaveKey('code');
+    expect($listFunctions->json('data.0'))->not->toHaveKey('env_variables');
+
+    app(TenantManagerService::class)->deleteDatabase($app);
+});
+
+test('sdk api supports count, paginate, upsert, password update, and storage usage with quota enforcement', function () {
+    Storage::fake('public');
+
+    $owner = User::factory()->create(['max_storage_mb' => 1]);
+    $app = App::factory()->for($owner)->create();
+    $headers = ['X-Zenbase-Api-Key' => $app->public_key];
+
+    // 1. Upsert creates document with custom ID when missing, then updates it
+    $this->putJson('/api/v1/collections/tasks/records/task-hero', [
+        'title' => 'Initial task',
+        'done' => false,
+        '_upsert' => true,
+    ], $headers)
+        ->assertCreated()
+        ->assertJsonPath('data.id', 'task-hero');
+
+    $this->putJson('/api/v1/collections/tasks/records/task-hero', [
+        'done' => true,
+        '_upsert' => true,
+    ], $headers)
+        ->assertOk()
+        ->assertJsonPath('data.done', true)
+        ->assertJsonPath('data.title', 'Initial task');
+
+    // 2. Count & Paginate endpoints
+    $this->getJson('/api/v1/collections/tasks/count?where='.urlencode(json_encode([
+        ['field' => 'done', 'operator' => '==', 'value' => true],
+    ])), $headers)
+        ->assertOk()
+        ->assertJsonPath('data.count', 1);
+
+    $this->getJson('/api/v1/collections/tasks/paginate?page=1&per_page=10&search=Initial', $headers)
+        ->assertOk()
+        ->assertJsonPath('data.total', 1)
+        ->assertJsonPath('data.items.0.id', 'task-hero');
+
+    // 3. Auth password update
+    $signUp = $this->postJson('/api/v1/auth/signup', [
+        'email' => 'pwd-user@example.com',
+        'password' => 'oldSecret123',
+    ], $headers)->assertCreated();
+
+    $token = $signUp->json('data.token');
+
+    $this->putJson('/api/v1/auth/password', [
+        'current_password' => 'wrongPassword',
+        'new_password' => 'newSecret456',
+    ], [
+        ...$headers,
+        'X-Zenbase-User-Token' => $token,
+    ])->assertUnprocessable();
+
+    $this->putJson('/api/v1/auth/password', [
+        'current_password' => 'oldSecret123',
+        'new_password' => 'newSecret456',
+    ], [
+        ...$headers,
+        'X-Zenbase-User-Token' => $token,
+    ])->assertOk()
+        ->assertJsonPath('data.updated', true);
+
+    $this->postJson('/api/v1/auth/signin', [
+        'email' => 'pwd-user@example.com',
+        'password' => 'newSecret456',
+    ], $headers)->assertOk();
+
+    // 4. Storage usage & HTTP 413 when exceeding 1 MB quota via SDK API
+    $this->postJson('/api/v1/storage/upload', [
+        'file' => UploadedFile::fake()->create('doc1.bin', 700),
+        'path' => 'docs/doc1.bin',
+    ], $headers)->assertCreated();
+
+    $this->postJson('/api/v1/storage/upload', [
+        'file' => UploadedFile::fake()->create('doc2.bin', 500),
+        'path' => 'docs/doc2.bin',
+    ], $headers)->assertStatus(413);
+
+    $this->getJson('/api/v1/storage/usage', $headers)
+        ->assertOk()
+        ->assertJsonPath('data.max_storage_mb', 1)
+        ->assertJsonPath('data.app_files_count', 1);
+
     app(TenantManagerService::class)->deleteDatabase($app);
 });

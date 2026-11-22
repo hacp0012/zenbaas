@@ -156,6 +156,65 @@ class DatabaseApiController extends Controller
     }
 
     /**
+     * Count documents matching optional filters inside a collection.
+     */
+    public function countRecords(Request $request, string $collection): JsonResponse
+    {
+        try {
+            $filters = [];
+            $rawWhere = $request->input('where');
+
+            if (is_string($rawWhere) && $rawWhere !== '') {
+                $decoded = json_decode($rawWhere, true);
+                if (is_array($decoded)) {
+                    $filters = $decoded;
+                }
+            } elseif (is_array($rawWhere)) {
+                $filters = $rawWhere;
+            }
+
+            return response()->json([
+                'data' => [
+                    'collection' => $collection,
+                    'count' => $this->engine->count($collection, $filters),
+                ],
+                'error' => null,
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'data' => null,
+                'error' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Paginate documents inside a collection with optional search and sorting.
+     */
+    public function paginateRecords(Request $request, string $collection): JsonResponse
+    {
+        try {
+            $page = max(1, $request->integer('page', 1));
+            $perPage = max(1, min($request->integer('per_page', 25), 250));
+            $search = $request->string('search')->toString() ?: null;
+            $orderBy = $request->string('orderBy', 'created_at')->toString() ?: 'created_at';
+            $direction = $request->string('direction', 'desc')->toString();
+
+            $paginated = $this->engine->paginate($collection, $page, $perPage, $search, $orderBy, $direction);
+
+            return response()->json([
+                'data' => $paginated,
+                'error' => null,
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'data' => null,
+                'error' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
      * Create a new document in a collection.
      */
     public function storeRecord(Request $request, string $collection): JsonResponse
@@ -217,13 +276,23 @@ class DatabaseApiController extends Controller
             $payload = $request->input('data');
 
             if (! is_array($payload)) {
-                $payload = $request->except(['_replace']);
+                $payload = $request->except(['_replace', '_upsert']);
             }
 
             $replace = $request->boolean('_replace', false);
+            $upsert = $request->boolean('_upsert', false);
             $record = $this->engine->update($collection, $recordId, $payload, $replace);
 
             if (! $record) {
+                if ($upsert) {
+                    $created = $this->engine->create($collection, $payload, $recordId);
+
+                    return response()->json([
+                        'data' => $created,
+                        'error' => null,
+                    ], 201);
+                }
+
                 return response()->json([
                     'data' => null,
                     'error' => 'Document introuvable.',

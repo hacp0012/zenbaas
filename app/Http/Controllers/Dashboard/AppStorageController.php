@@ -6,6 +6,7 @@ use App\Concerns\AuthorizesAppOwnership;
 use App\Http\Controllers\Controller;
 use App\Models\App;
 use App\Models\AppFile;
+use App\Modules\Storage\Exceptions\StorageQuotaExceededException;
 use App\Modules\Storage\Services\StorageManagerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -82,16 +83,33 @@ class AppStorageController extends Controller
         $customPath = $validated['path'] ?? null;
         $uploadedCount = 0;
 
-        if ($request->hasFile('files')) {
-            foreach ($request->file('files') as $uploadedFile) {
-                $this->storageManager->upload($app, $uploadedFile, null, $folder);
-                $uploadedCount++;
+        try {
+            if ($request->hasFile('files')) {
+                $uploadedFiles = $request->file('files');
+                $totalIncomingBytes = 0;
+                foreach ($uploadedFiles as $uploadedFile) {
+                    $totalIncomingBytes += (int) $uploadedFile->getSize();
+                }
+
+                $this->storageManager->ensureStorageQuotaAvailable($app, $totalIncomingBytes);
+
+                foreach ($uploadedFiles as $uploadedFile) {
+                    $this->storageManager->upload($app, $uploadedFile, null, $folder);
+                    $uploadedCount++;
+                }
+            } elseif ($request->hasFile('file')) {
+                $this->storageManager->upload($app, $request->file('file'), $customPath, $folder);
+                $uploadedCount = 1;
+            } else {
+                return back()->withErrors(['file' => 'Veuillez sélectionner au moins un fichier à téléverser.']);
             }
-        } elseif ($request->hasFile('file')) {
-            $this->storageManager->upload($app, $request->file('file'), $customPath, $folder);
-            $uploadedCount = 1;
-        } else {
-            return back()->withErrors(['file' => 'Veuillez sélectionner au moins un fichier à téléverser.']);
+        } catch (StorageQuotaExceededException $e) {
+            return back()
+                ->withErrors([
+                    'file' => $e->getMessage(),
+                    'files' => $e->getMessage(),
+                ])
+                ->with('error', $e->getMessage());
         }
 
         return back()->with(

@@ -1,5 +1,12 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { Ban, CheckCircle2, Search, Trash2, UserPlus } from 'lucide-react';
+import {
+    Ban,
+    Calendar,
+    CheckCircle2,
+    Search,
+    Trash2,
+    UserPlus,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog';
@@ -199,6 +206,9 @@ export default function ClientAppAuth({
                                                 Méthode
                                             </th>
                                             <th className="pb-2 font-medium">
+                                                Date de création
+                                            </th>
+                                            <th className="pb-2 font-medium">
                                                 Statut
                                             </th>
                                             <th className="pb-2 text-right font-medium">
@@ -224,6 +234,28 @@ export default function ClientAppAuth({
                                                             ? 'OTP E-mail'
                                                             : 'Mot de passe'}
                                                     </Badge>
+                                                </td>
+                                                <td className="py-3 text-xs text-muted-foreground">
+                                                    {tu.created_at ? (
+                                                        <div className="flex items-center gap-1.5 font-mono">
+                                                            <Calendar className="size-3.5 shrink-0 text-muted-foreground/70" />
+                                                            <span>
+                                                                {new Date(
+                                                                    tu.created_at,
+                                                                ).toLocaleString(
+                                                                    'fr-FR',
+                                                                    {
+                                                                        dateStyle:
+                                                                            'short',
+                                                                        timeStyle:
+                                                                            'short',
+                                                                    },
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <span>—</span>
+                                                    )}
                                                 </td>
                                                 <td className="py-3">
                                                     {tu.is_blocked ? (

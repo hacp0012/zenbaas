@@ -303,6 +303,7 @@ class ClientAppController extends Controller
                 'total_bytes' => $totalBytes,
                 'images_count' => $imagesCount,
             ],
+            'storageQuota' => $this->storageManager->getStorageUsageSummary($app),
             'storageFilters' => [
                 'search' => $search,
                 'folder' => $folder,

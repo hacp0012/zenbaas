@@ -14,6 +14,25 @@ class FunctionApiController extends Controller
     public function __construct(public FunctionRunnerService $runner) {}
 
     /**
+     * List active serverless PHP Web Functions available for invocation on the current application.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        /** @var App $app */
+        $app = $request->attributes->get('current_app');
+
+        $functions = $app->functions()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['name', 'description', 'is_active', 'created_at', 'updated_at']);
+
+        return response()->json([
+            'data' => $functions,
+            'error' => null,
+        ]);
+    }
+
+    /**
      * Invoke a serverless PHP Web Function belonging to the current application.
      */
     public function invoke(Request $request, string $functionName): JsonResponse

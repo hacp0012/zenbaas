@@ -46,7 +46,10 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user ? [
                     ...$user->toArray(),
                     'max_apps' => (int) ($user->max_apps ?? 1),
+                    'max_storage_mb' => $user->max_storage_mb !== null ? (int) $user->max_storage_mb : null,
+                    'used_storage_bytes' => $user->is_admin ? 0 : $user->usedStorageBytes(),
                     'expires_at' => $user->expires_at?->toIso8601String(),
+                    'created_at' => $user->created_at?->toIso8601String(),
                     'apps_count' => $user->is_admin ? 0 : $user->apps()->count(),
                 ] : null,
             ],

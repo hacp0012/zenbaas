@@ -16,6 +16,18 @@ export declare class Zenbase {
      * Raccourci direct pour interagir avec une collection NoSQL (`zb.collection('todos')`).
      */
     collection<T = Record<string, unknown>>(name: string): CollectionQueryBuilder<T>;
+    /**
+     * Ajoute ou met à jour un en-tête HTTP personnalisé envoyé avec toutes les requêtes SDK.
+     */
+    setHeader(key: string, value: string): void;
+    /**
+     * Supprime un en-tête HTTP personnalisé précédemment configuré.
+     */
+    removeHeader(key: string): void;
+    /**
+     * Retourne l'URL de base de la passerelle API Zenbase (`/api/v1`).
+     */
+    getEndpoint(): string;
 }
 /**
  * Alias de `Zenbase` pour la compatibilité avec `new BaaSClient({ endpoint, apiKey })`.

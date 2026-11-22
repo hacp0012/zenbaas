@@ -6,6 +6,8 @@ export type User = {
     is_admin?: boolean;
     is_suspended?: boolean;
     max_apps?: number;
+    max_storage_mb?: number | null;
+    used_storage_bytes?: number;
     expires_at?: string | null;
     apps_count?: number;
     email_verified_at: string | null;
@@ -74,6 +76,7 @@ export type ZenbaseFunction = {
     logs: ZenbaseFunctionLog[] | null;
     is_active: boolean;
     created_at: string;
+    updated_at?: string | null;
 };
 
 export type ZenbaseApp = {

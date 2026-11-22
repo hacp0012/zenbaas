@@ -4,7 +4,10 @@ import type {
     QueryFilter,
     ZenbaseBlobValue,
     ZenbaseCollectionSchema,
+    ZenbaseCollectionSummary,
     ZenbaseDocument,
+    ZenbasePaginatedResult,
+    ZenbasePaginateOptions,
     ZenbaseQueryResult,
     ZenbaseResponse,
 } from '../types/index.js';
@@ -189,6 +192,20 @@ export class CollectionQueryBuilder<T = Record<string, unknown>> {
     }
 
     /**
+     * Raccourci pour `.where(field, 'in', values)`.
+     */
+    public whereIn(field: string, values: unknown[]): this {
+        return this.where(field, 'in', values);
+    }
+
+    /**
+     * Raccourci pour `.where(field, 'contains', value)`.
+     */
+    public whereContains(field: string, value: string): this {
+        return this.where(field, 'contains', value);
+    }
+
+    /**
      * Trie les documents par un champ JSON ou une colonne système (`created_at`, `updated_at`, `id`).
      */
     public orderBy(field: string, direction: 'asc' | 'desc' = 'asc'): this {
@@ -260,6 +277,85 @@ export class CollectionQueryBuilder<T = Record<string, unknown>> {
     }
 
     /**
+     * Retourne uniquement le premier document correspondant aux filtres et au tri courant (ou `null`).
+     */
+    public async first(): Promise<ZenbaseResponse<ZenbaseDocument<T> | null>> {
+        const previousLimit = this.limitValue;
+        this.limitValue = 1;
+        const result = await this.get();
+        this.limitValue = previousLimit;
+
+        return {
+            data: result.data[0] ?? null,
+            error: result.error,
+        };
+    }
+
+    /**
+     * Compte le nombre de documents correspondant aux filtres courants sans transférer les documents.
+     */
+    public async count(): Promise<ZenbaseResponse<number>> {
+        const query: Record<string, string | undefined> = {};
+
+        if (this.filters.length > 0) {
+            query.where = JSON.stringify(this.filters);
+        }
+
+        const response = await this.http.request<{ collection: string; count: number }>(
+            'GET',
+            `/collections/${encodeURIComponent(this.collectionName)}/count`,
+            { query },
+        );
+
+        return {
+            data: response.data ? response.data.count : null,
+            error: response.error,
+        };
+    }
+
+    /**
+     * Vérifie si un document existe (par son `id` ou selon les filtres courants).
+     */
+    public async exists(id?: string): Promise<ZenbaseResponse<boolean>> {
+        if (id) {
+            const response = await this.find(id);
+            if (response.data) {
+                return { data: true, error: null };
+            }
+
+            return { data: false, error: null };
+        }
+
+        const counted = await this.count();
+
+        return {
+            data: counted.data !== null ? counted.data > 0 : null,
+            error: counted.error,
+        };
+    }
+
+    /**
+     * Pagine les documents de la collection côté serveur avec recherche plein-texte optionnelle.
+     */
+    public async paginate(
+        options: ZenbasePaginateOptions = {},
+    ): Promise<ZenbaseResponse<ZenbasePaginatedResult<T>>> {
+        return this.http.request<ZenbasePaginatedResult<T>>(
+            'GET',
+            `/collections/${encodeURIComponent(this.collectionName)}/paginate`,
+            {
+                query: {
+                    page: options.page ?? 1,
+                    per_page: options.perPage ?? 25,
+                    search: options.search,
+                    orderBy: options.orderBy ?? this.sortField,
+                    direction: options.direction ?? this.sortDirection,
+                },
+            },
+        );
+    }
+
+    /**
      * Récupère un document unique par son identifiant UUID.
      */
     public async find(id: string): Promise<ZenbaseResponse<ZenbaseDocument<T>>> {
@@ -281,7 +377,7 @@ export class CollectionQueryBuilder<T = Record<string, unknown>> {
             { body: document },
         );
 
-        const created = (response.data ?? ({} as ZenbaseDocument<T>));
+        const created = response.data ?? ({} as ZenbaseDocument<T>);
 
         return Object.assign({}, created, {
             data: response.data,
@@ -304,6 +400,37 @@ export class CollectionQueryBuilder<T = Record<string, unknown>> {
                 body: {
                     ...partialDocument,
                     _replace: replace,
+                },
+            },
+        );
+    }
+
+    /**
+     * Remplace intégralement le contenu JSON d'un document existant (équivalent à `.update(id, doc, true)`).
+     */
+    public async replace(
+        id: string,
+        document: T,
+    ): Promise<ZenbaseResponse<ZenbaseDocument<T>>> {
+        return this.update(id, document, true);
+    }
+
+    /**
+     * Met à jour un document s'il existe déjà sous cet `id`, ou le crée automatiquement sinon.
+     */
+    public async upsert(
+        id: string,
+        document: T,
+        replace = false,
+    ): Promise<ZenbaseResponse<ZenbaseDocument<T>>> {
+        return this.http.request<ZenbaseDocument<T>>(
+            'PUT',
+            `/collections/${encodeURIComponent(this.collectionName)}/records/${encodeURIComponent(id)}`,
+            {
+                body: {
+                    ...document,
+                    _replace: replace,
+                    _upsert: true,
                 },
             },
         );
@@ -343,6 +470,18 @@ export class CollectionQueryBuilder<T = Record<string, unknown>> {
             { body: { schema } },
         );
     }
+
+    /**
+     * Supprime cette collection ainsi que tous ses documents.
+     */
+    public async deleteCollection(): Promise<
+        ZenbaseResponse<{ deleted: boolean; collection: string }>
+    > {
+        return this.http.request<{ deleted: boolean; collection: string }>(
+            'DELETE',
+            `/collections/${encodeURIComponent(this.collectionName)}`,
+        );
+    }
 }
 
 export class DatabaseModule {
@@ -367,16 +506,38 @@ export class DatabaseModule {
     /**
      * Liste toutes les collections de l'application courante.
      */
-    public async listCollections(): Promise<
-        ZenbaseResponse<
-            Array<{
-                name: string;
-                count: number;
-                schema: ZenbaseCollectionSchema | null;
-                created_at: string | null;
-            }>
-        >
-    > {
-        return this.http.request('GET', '/collections');
+    public async listCollections(): Promise<ZenbaseResponse<ZenbaseCollectionSummary[]>> {
+        return this.http.request<ZenbaseCollectionSummary[]>('GET', '/collections');
+    }
+
+    /**
+     * Crée explicitement une collection NoSQL (avec un schéma de validation optionnel).
+     */
+    public async createCollection(
+        name: string,
+        schema?: ZenbaseCollectionSchema | null,
+    ): Promise<ZenbaseResponse<{ name: string; schema: ZenbaseCollectionSchema | null }>> {
+        return this.http.request<{ name: string; schema: ZenbaseCollectionSchema | null }>(
+            'POST',
+            '/collections',
+            {
+                body: {
+                    name,
+                    schema: schema ?? null,
+                },
+            },
+        );
+    }
+
+    /**
+     * Supprime définitivement une collection et l'ensemble de ses documents.
+     */
+    public async deleteCollection(
+        name: string,
+    ): Promise<ZenbaseResponse<{ deleted: boolean; collection: string }>> {
+        return this.http.request<{ deleted: boolean; collection: string }>(
+            'DELETE',
+            `/collections/${encodeURIComponent(name)}`,
+        );
     }
 }

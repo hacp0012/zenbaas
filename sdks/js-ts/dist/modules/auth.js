@@ -1,6 +1,7 @@
 export class AuthModule {
     http;
     currentUser = null;
+    listeners = new Set();
     constructor(http) {
         this.http = http;
     }
@@ -14,6 +15,7 @@ export class AuthModule {
         if (response.data?.token) {
             this.http.setUserToken(response.data.token);
             this.currentUser = response.data.user;
+            this.emit('SIGNED_UP');
         }
         return {
             user: response.data?.user ?? null,
@@ -32,6 +34,7 @@ export class AuthModule {
         if (response.data?.token) {
             this.http.setUserToken(response.data.token);
             this.currentUser = response.data.user;
+            this.emit('SIGNED_IN');
         }
         return {
             user: response.data?.user ?? null,
@@ -70,6 +73,7 @@ export class AuthModule {
         if (response.data?.token) {
             this.http.setUserToken(response.data.token);
             this.currentUser = response.data.user;
+            this.emit('SIGNED_IN');
         }
         return {
             user: response.data?.user ?? null,
@@ -85,17 +89,49 @@ export class AuthModule {
         const response = await this.http.request('GET', '/auth/user');
         if (response.data?.user) {
             this.currentUser = response.data.user;
+            this.emit('USER_UPDATED');
         }
         return response;
     }
     /**
-     * Déconnecte l'utilisateur courant et révoque son token.
+     * Met à jour le mot de passe de l'utilisateur actuellement authentifié.
+     */
+    async updatePassword(currentPassword, newPassword) {
+        const response = await this.http.request('PUT', '/auth/password', {
+            body: {
+                current_password: currentPassword,
+                new_password: newPassword,
+            },
+        });
+        if (response.data?.user) {
+            this.currentUser = response.data.user;
+            this.emit('USER_UPDATED');
+        }
+        return response;
+    }
+    /**
+     * Déconnecte l'utilisateur courant et révoque son token côté serveur.
      */
     async signOut() {
         const response = await this.http.request('POST', '/auth/signout');
         this.http.setUserToken(null);
         this.currentUser = null;
+        this.emit('SIGNED_OUT');
         return response;
+    }
+    /**
+     * Efface la session locale (token + utilisateur en cache) sans effectuer d'appel réseau.
+     */
+    clearSession() {
+        this.http.setUserToken(null);
+        this.currentUser = null;
+        this.emit('SIGNED_OUT');
+    }
+    /**
+     * Indique si un token de session utilisateur est actuellement configuré dans le client.
+     */
+    isAuthenticated() {
+        return Boolean(this.http.getUserToken());
     }
     /**
      * Retourne le token de session actif en mémoire.
@@ -108,12 +144,40 @@ export class AuthModule {
      */
     setToken(token) {
         this.http.setUserToken(token);
+        if (!token) {
+            this.currentUser = null;
+        }
+        this.emit('TOKEN_CHANGED');
     }
     /**
      * Retourne le dernier utilisateur mis en cache en mémoire.
      */
     getCachedUser() {
         return this.currentUser;
+    }
+    /**
+     * S'abonne aux changements d'état d'authentification (`SIGNED_IN`, `SIGNED_UP`, `SIGNED_OUT`, `TOKEN_CHANGED`, `USER_UPDATED`).
+     * Retourne une fonction de désabonnement `unsubscribe()`.
+     */
+    onAuthStateChange(callback) {
+        this.listeners.add(callback);
+        return () => {
+            this.listeners.delete(callback);
+        };
+    }
+    emit(event) {
+        const session = {
+            user: this.currentUser,
+            token: this.http.getUserToken(),
+        };
+        for (const listener of this.listeners) {
+            try {
+                listener(event, session);
+            }
+            catch {
+                // Ignore listener exceptions to avoid breaking auth flow
+            }
+        }
     }
 }
 //# sourceMappingURL=auth.js.map

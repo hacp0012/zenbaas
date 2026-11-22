@@ -1,12 +1,13 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
-    CheckCircle2,
-    Code2,
+    Calendar,
+    Check,
+    Clock,
+    Copy,
     Download,
     FileUp,
     Play,
-    Plus,
     Save,
     SlidersHorizontal,
     Sparkles,
@@ -20,17 +21,10 @@ import { MonacoCodeEditor } from '@/components/monaco-code-editor';
 import { PrismCodeBlock } from '@/components/prism-code-block';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import ClientAppLayout from '@/layouts/client-app-layout';
-import type { ZenbaseApp, ZenbaseFunction } from '@/types';
+import { dashboard } from '@/routes';
+import type { Auth, ZenbaseApp, ZenbaseFunction } from '@/types';
 
 const DEFAULT_PHP_FUNCTION_TEMPLATE = `<?php
 
@@ -60,34 +54,52 @@ return function($event, $context) {
 
 const QUICK_PHP_SNIPPETS = [
     {
-        label: 'NoSQL: Insérer un document',
+        label: 'NoSQL: Insérer',
         code: `\n    $doc = $context->database->collection('items')->create([\n        'title' => 'Nouveau',\n        'active' => true,\n    ]);\n`,
     },
     {
-        label: 'NoSQL: Requête filtrée',
+        label: 'NoSQL: Requête',
         code: `\n    $items = $context->database->collection('items')\n        ->where('active', '==', true)\n        ->orderBy('created_at', 'desc')\n        ->limit(20)\n        ->get();\n`,
     },
     {
-        label: 'Storage: Générer un fichier',
+        label: 'Storage: Upload',
         code: `\n    $file = $context->storage->upload('exports/rapport.json', json_encode(['ok' => true]), 'application/json');\n`,
     },
     {
-        label: 'Auth: Vérifier utilisateur',
+        label: 'Auth: Vérifier',
         code: `\n    if (! $context->auth->check()) {\n        return ['status' => 401, 'data' => ['error' => 'Authentification requise']];\n    }\n`,
     },
 ];
 
+function formatDateTime(iso: string | null | undefined): string {
+    if (!iso) {
+        return '—';
+    }
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) {
+        return '—';
+    }
+
+    return d.toLocaleString('fr-FR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+    });
+}
+
 export default function ClientAppFunctionEditor({
     app,
+    apiBaseUrl,
     activeFunction,
     globalEnv = {},
 }: {
     app: ZenbaseApp;
+    apiBaseUrl?: string;
     activeFunction: ZenbaseFunction | null;
     stubsContent?: string;
     globalEnv?: Record<string, string>;
 }) {
-    const { flash, errors } = usePage<{
+    const { auth, flash, errors } = usePage<{
+        auth: Auth;
         flash?: {
             success?: string;
             error?: string;
@@ -119,6 +131,10 @@ export default function ClientAppFunctionEditor({
     const [testPayload, setTestPayload] = useState(
         '{\n  "name": "Alex",\n  "action": "ping"\n}',
     );
+    const [rightTab, setRightTab] = useState<'test' | 'logs' | 'secrets'>(
+        'test',
+    );
+    const [copiedEndpoint, setCopiedEndpoint] = useState(false);
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
     const allEnvKeys = useMemo(() => {
@@ -129,6 +145,17 @@ export default function ClientAppFunctionEditor({
 
         return Array.from(keys);
     }, [globalEnv, activeFunction]);
+
+    const normalizedApiBase = (apiBaseUrl ?? '/api/v1').replace(/\/+$/, '');
+    const invokeEndpoint = activeFunction
+        ? `${normalizedApiBase}/functions/${activeFunction.name}/invoke`
+        : `${normalizedApiBase}/functions/${fnName || 'ma-fonction'}/invoke`;
+
+    function handleCopyEndpoint() {
+        void navigator.clipboard.writeText(invokeEndpoint);
+        setCopiedEndpoint(true);
+        setTimeout(() => setCopiedEndpoint(false), 2000);
+    }
 
     function handleLocalPhpFileRead(e: ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
@@ -189,106 +216,164 @@ export default function ClientAppFunctionEditor({
         );
     }
 
+    const logsCount = activeFunction?.logs?.length ?? 0;
+
     return (
         <>
             <Head
-                title={`${app.name} — IDE PHP (${activeFunction?.name ?? 'Nouvelle Fonction'})`}
+                title={`${app.name} — IDE Edge Function (${activeFunction?.name ?? 'Nouvelle Fonction'})`}
             />
             <div className="space-y-4">
-                {/* Top IDE Header Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs">
-                    <div className="flex items-center gap-3">
-                        <Button asChild size="sm" variant="outline">
-                            <Link href={`/dashboard/apps/${app.id}/functions`}>
-                                <ArrowLeft className="mr-1.5 size-3.5" />
-                                Liste des fonctions
-                            </Link>
-                        </Button>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <TerminalSquare className="size-4 text-emerald-600" />
-                                <h2 className="font-mono text-base font-bold">
-                                    {isEditingExisting
-                                        ? `${activeFunction?.name}.php`
-                                        : 'nouvelle-fonction.php'}
-                                </h2>
-                                <Badge
-                                    variant="secondary"
-                                    className="bg-emerald-500/15 font-mono text-[10px] text-emerald-700 dark:text-emerald-300"
+                {/* Supabase-style Function Detail Header */}
+                <div className="rounded-xl border bg-card px-4 py-3.5 shadow-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <Button asChild size="sm" variant="outline">
+                                <Link
+                                    href={`/dashboard/apps/${app.id}/functions`}
                                 >
-                                    IntelliSense PHP Actif
-                                </Badge>
+                                    <ArrowLeft className="mr-1.5 size-3.5" />
+                                    Fonctions
+                                </Link>
+                            </Button>
+                            <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <TerminalSquare className="size-4 text-emerald-600" />
+                                    <h2 className="font-mono text-base font-bold">
+                                        {isEditingExisting
+                                            ? activeFunction?.name
+                                            : 'nouvelle-fonction'}
+                                    </h2>
+                                    <span
+                                        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                                            fnActive
+                                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                                : 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300'
+                                        }`}
+                                    >
+                                        <span
+                                            className={`size-1.5 rounded-full ${fnActive ? 'bg-emerald-500' : 'bg-red-500'}`}
+                                        />
+                                        {fnActive ? 'Active' : 'Désactivée'}
+                                    </span>
+                                </div>
+                                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                                    {activeFunction?.created_at && (
+                                        <span className="inline-flex items-center gap-1 font-mono">
+                                            <Clock className="size-3" />
+                                            Créée le{' '}
+                                            {formatDateTime(
+                                                activeFunction.created_at,
+                                            )}
+                                        </span>
+                                    )}
+                                    {auth?.user?.created_at && (
+                                        <span className="inline-flex items-center gap-1">
+                                            <Calendar className="size-3 text-emerald-600 dark:text-emerald-400" />
+                                            Compte créé le{' '}
+                                            {new Date(
+                                                auth.user.created_at,
+                                            ).toLocaleDateString('fr-FR')}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                Éditeur PHP complet avec suggestions (
-                                <code className="font-mono">$context</code>,{' '}
-                                <code className="font-mono">$event</code>,
-                                fonctions PHP standard) et exécution sandbox en
-                                direct.
-                            </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            {functions.length > 0 && (
+                                <select
+                                    value={activeFunction?.id ?? ''}
+                                    onChange={(e) => {
+                                        const targetId = e.target.value;
+                                        if (targetId) {
+                                            router.get(
+                                                `/dashboard/apps/${app.id}/functions/editor/${targetId}`,
+                                            );
+                                        } else {
+                                            router.get(
+                                                `/dashboard/apps/${app.id}/functions/editor`,
+                                            );
+                                        }
+                                    }}
+                                    aria-label="Changer de fonction PHP"
+                                    className="h-8 rounded-md border bg-background px-2.5 font-mono text-xs"
+                                >
+                                    <option value="">
+                                        + Nouvelle fonction...
+                                    </option>
+                                    {functions.map((f) => (
+                                        <option key={f.id} value={f.id}>
+                                            {f.name}.php
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+
+                            <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium hover:bg-muted">
+                                <FileUp className="size-3.5 text-emerald-600" />
+                                <span>Charger .php</span>
+                                <input
+                                    type="file"
+                                    accept=".php,text/plain"
+                                    className="hidden"
+                                    onChange={handleLocalPhpFileRead}
+                                />
+                            </label>
+
+                            {activeFunction && (
+                                <Button asChild size="sm" variant="outline">
+                                    <a
+                                        href={`/dashboard/apps/${app.id}/functions/${activeFunction.id}/download`}
+                                        download
+                                    >
+                                        <Download className="mr-1.5 size-3.5" />
+                                        .php
+                                    </a>
+                                </Button>
+                            )}
+
+                            <Button asChild size="sm" variant="outline">
+                                <Link
+                                    href={`/dashboard/apps/${app.id}/functions/env`}
+                                >
+                                    <SlidersHorizontal className="mr-1.5 size-3.5 text-amber-500" />
+                                    Secrets ({allEnvKeys.length})
+                                </Link>
+                            </Button>
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                        {/* Quick Function Switcher */}
-                        {functions.length > 0 && (
-                            <select
-                                value={activeFunction?.id ?? ''}
-                                onChange={(e) => {
-                                    const targetId = e.target.value;
-                                    if (targetId) {
-                                        router.get(
-                                            `/dashboard/apps/${app.id}/functions/editor/${targetId}`,
-                                        );
-                                    } else {
-                                        router.get(
-                                            `/dashboard/apps/${app.id}/functions/editor`,
-                                        );
-                                    }
-                                }}
-                                aria-label="Changer de fonction PHP"
-                                className="h-8 rounded-md border bg-background px-2.5 font-mono text-xs"
+                    {/* Endpoint bar */}
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-1.5 text-xs">
+                        <div className="flex min-w-0 items-center gap-2">
+                            <Badge
+                                variant="secondary"
+                                className="h-5 bg-emerald-500/15 font-mono text-[10px] text-emerald-700 dark:text-emerald-300"
                             >
-                                <option value="">+ Nouvelle fonction...</option>
-                                {functions.map((f) => (
-                                    <option key={f.id} value={f.id}>
-                                        {f.name}.php
-                                    </option>
-                                ))}
-                            </select>
-                        )}
-
-                        <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium hover:bg-muted">
-                            <FileUp className="size-3.5 text-emerald-600" />
-                            <span>Charger un .php</span>
-                            <input
-                                type="file"
-                                accept=".php,text/plain"
-                                className="hidden"
-                                onChange={handleLocalPhpFileRead}
-                            />
-                        </label>
-
-                        {activeFunction && (
-                            <Button asChild size="sm" variant="outline">
-                                <a
-                                    href={`/dashboard/apps/${app.id}/functions/${activeFunction.id}/download`}
-                                    download
-                                >
-                                    <Download className="mr-1.5 size-3.5" />
-                                    Télécharger .php
-                                </a>
-                            </Button>
-                        )}
-
-                        <Button asChild size="sm" variant="outline">
-                            <Link
-                                href={`/dashboard/apps/${app.id}/functions/env`}
-                            >
-                                <SlidersHorizontal className="mr-1.5 size-3.5 text-amber-500" />
-                                Variables d&apos;Env ({allEnvKeys.length})
-                            </Link>
-                        </Button>
+                                POST
+                            </Badge>
+                            <code className="truncate font-mono text-[11px] text-muted-foreground">
+                                {invokeEndpoint}
+                            </code>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleCopyEndpoint}
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                        >
+                            {copiedEndpoint ? (
+                                <>
+                                    <Check className="size-3" />
+                                    Copié
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="size-3" />
+                                    Copier URL
+                                </>
+                            )}
+                        </button>
                     </div>
                 </div>
 
@@ -298,336 +383,381 @@ export default function ClientAppFunctionEditor({
                     </div>
                 )}
 
-                <div className="grid gap-6 lg:grid-cols-12">
-                    {/* Main PHP Monaco IDE Column */}
-                    <div className="space-y-4 lg:col-span-8">
-                        <Card>
-                            <CardContent className="pt-5">
-                                <form
-                                    onSubmit={handleSaveFunction}
-                                    className="space-y-4"
-                                >
-                                    <div className="grid gap-3 sm:grid-cols-12">
-                                        <div className="space-y-1 sm:col-span-4">
-                                            <Label
-                                                htmlFor="ide-fn-name"
-                                                className="text-xs"
-                                            >
-                                                Identifiant de la fonction
-                                                (slug)
-                                            </Label>
-                                            <Input
-                                                id="ide-fn-name"
-                                                value={fnName}
-                                                onChange={(e) =>
-                                                    setFnName(e.target.value)
-                                                }
-                                                placeholder="send-welcome-email"
-                                                className="h-8 font-mono text-xs"
-                                                required
-                                            />
-                                        </div>
-                                        <div className="space-y-1 sm:col-span-6">
-                                            <Label
-                                                htmlFor="ide-fn-desc"
-                                                className="text-xs"
-                                            >
-                                                Description
-                                            </Label>
-                                            <Input
-                                                id="ide-fn-desc"
-                                                value={fnDescription}
-                                                onChange={(e) =>
-                                                    setFnDescription(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="Décrivez le rôle de cette Web Function..."
-                                                className="h-8 text-xs"
-                                            />
-                                        </div>
-                                        <div className="flex items-end sm:col-span-2">
-                                            <label className="flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border px-2 text-xs">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={fnActive}
-                                                    onChange={(e) =>
-                                                        setFnActive(
-                                                            e.target.checked,
-                                                        )
-                                                    }
-                                                    className="size-3.5 rounded"
-                                                />
-                                                <span>Active</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    {/* Quick Snippets Bar */}
-                                    <div className="flex flex-wrap items-center gap-1.5 rounded-lg border bg-muted/30 px-3 py-2">
-                                        <span className="mr-1 flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
-                                            <Sparkles className="size-3 text-emerald-600" />
-                                            Snippets rapides :
-                                        </span>
-                                        {QUICK_PHP_SNIPPETS.map((snip) => (
-                                            <button
-                                                key={snip.label}
-                                                type="button"
-                                                onClick={() =>
-                                                    setFnCode((prev) =>
-                                                        prev.includes(
-                                                            'return [',
-                                                        )
-                                                            ? prev.replace(
-                                                                  'return [',
-                                                                  `${snip.code}\n    return [`,
-                                                              )
-                                                            : `${prev}\n${snip.code}`,
-                                                    )
-                                                }
-                                                className="rounded-md border bg-background px-2 py-0.5 font-mono text-[10px] hover:border-emerald-500/50 hover:text-emerald-600"
-                                            >
-                                                + {snip.label}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {/* Monaco PHP Editor with Autocomplete */}
-                                    <MonacoCodeEditor
-                                        value={fnCode}
-                                        onChange={setFnCode}
-                                        language="php"
-                                        height={480}
-                                        envKeys={allEnvKeys}
+                {/* Supabase-style Split IDE & Inspector Workspace */}
+                <div className="grid gap-5 lg:grid-cols-12">
+                    {/* Main Code Editor Column */}
+                    <div className="lg:col-span-8">
+                        <form
+                            onSubmit={handleSaveFunction}
+                            className="overflow-hidden rounded-xl border bg-card shadow-xs"
+                        >
+                            {/* Metadata Strip */}
+                            <div className="grid gap-3 border-b bg-muted/20 p-4 sm:grid-cols-12">
+                                <div className="space-y-1 sm:col-span-4">
+                                    <Label
+                                        htmlFor="ide-fn-name"
+                                        className="text-[11px] text-muted-foreground uppercase"
+                                    >
+                                        Slug de la fonction
+                                    </Label>
+                                    <Input
+                                        id="ide-fn-name"
+                                        value={fnName}
+                                        onChange={(e) =>
+                                            setFnName(e.target.value)
+                                        }
+                                        placeholder="send-welcome-email"
+                                        className="h-8 font-mono text-xs"
+                                        required
                                     />
+                                </div>
+                                <div className="space-y-1 sm:col-span-6">
+                                    <Label
+                                        htmlFor="ide-fn-desc"
+                                        className="text-[11px] text-muted-foreground uppercase"
+                                    >
+                                        Description
+                                    </Label>
+                                    <Input
+                                        id="ide-fn-desc"
+                                        value={fnDescription}
+                                        onChange={(e) =>
+                                            setFnDescription(e.target.value)
+                                        }
+                                        placeholder="Décrivez le rôle de cette Edge Function..."
+                                        className="h-8 text-xs"
+                                    />
+                                </div>
+                                <div className="flex items-end sm:col-span-2">
+                                    <label className="flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border bg-background px-2 text-xs">
+                                        <input
+                                            type="checkbox"
+                                            checked={fnActive}
+                                            onChange={(e) =>
+                                                setFnActive(e.target.checked)
+                                            }
+                                            className="size-3.5 rounded"
+                                        />
+                                        <span>Active</span>
+                                    </label>
+                                </div>
+                            </div>
 
-                                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                                        <div className="text-[11px] text-muted-foreground">
-                                            Astuce : Tapez{' '}
-                                            <code className="rounded bg-muted px-1 font-mono">
-                                                $context-&gt;
-                                            </code>{' '}
-                                            ou{' '}
-                                            <code className="rounded bg-muted px-1 font-mono">
-                                                $event
-                                            </code>{' '}
-                                            pour afficher les suggestions
-                                            d&apos;autocomplétion PHP.
-                                        </div>
+                            {/* Snippets Bar */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="mr-1 flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
+                                        <Sparkles className="size-3 text-emerald-600" />
+                                        Snippets :
+                                    </span>
+                                    {QUICK_PHP_SNIPPETS.map((snip) => (
+                                        <button
+                                            key={snip.label}
+                                            type="button"
+                                            onClick={() =>
+                                                setFnCode((prev) =>
+                                                    prev.includes('return [')
+                                                        ? prev.replace(
+                                                              'return [',
+                                                              `${snip.code}\n    return [`,
+                                                          )
+                                                        : `${prev}\n${snip.code}`,
+                                                )
+                                            }
+                                            className="rounded-md border bg-background px-2 py-0.5 font-mono text-[10px] hover:border-emerald-500/50 hover:text-emerald-600"
+                                        >
+                                            + {snip.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <span className="font-mono text-[10px] text-muted-foreground">
+                                    {fnName || 'index'}.php
+                                </span>
+                            </div>
 
-                                        <div className="flex items-center gap-2">
-                                            {activeFunction && (
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="destructive"
-                                                    onClick={() =>
-                                                        setConfirmDeleteOpen(
-                                                            true,
-                                                        )
-                                                    }
-                                                >
-                                                    <Trash2 className="mr-1.5 size-3.5" />
-                                                    Supprimer
-                                                </Button>
-                                            )}
-                                            <Button
-                                                type="submit"
-                                                size="sm"
-                                                className="bg-emerald-600 text-white hover:bg-emerald-500"
-                                            >
-                                                <Save className="mr-1.5 size-3.5" />
-                                                {isEditingExisting
-                                                    ? 'Enregistrer la fonction PHP'
-                                                    : 'Créer et déployer la fonction'}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
+                            {/* Monaco PHP Editor */}
+                            <div className="p-3">
+                                <MonacoCodeEditor
+                                    value={fnCode}
+                                    onChange={setFnCode}
+                                    language="php"
+                                    height={480}
+                                    envKeys={allEnvKeys}
+                                />
+                            </div>
+
+                            {/* Editor Footer Action Bar */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/20 px-4 py-3">
+                                <div className="text-[11px] text-muted-foreground">
+                                    Autocomplétion active sur{' '}
+                                    <code className="rounded bg-muted px-1 font-mono">
+                                        $context-&gt;
+                                    </code>{' '}
+                                    et{' '}
+                                    <code className="rounded bg-muted px-1 font-mono">
+                                        $event
+                                    </code>
+                                    .
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    {activeFunction && (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="destructive"
+                                            onClick={() =>
+                                                setConfirmDeleteOpen(true)
+                                            }
+                                        >
+                                            <Trash2 className="mr-1.5 size-3.5" />
+                                            Supprimer
+                                        </Button>
+                                    )}
+                                    <Button
+                                        type="submit"
+                                        size="sm"
+                                        className="bg-emerald-600 text-white hover:bg-emerald-500"
+                                    >
+                                        <Save className="mr-1.5 size-3.5" />
+                                        {isEditingExisting
+                                            ? 'Déployer les modifications'
+                                            : 'Créer et déployer'}
+                                    </Button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
 
-                    {/* Right Column: Live Test Runner, Env Variables Preview & Execution Logs */}
-                    <div className="space-y-4 lg:col-span-4">
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="flex items-center justify-between text-sm">
-                                    <span>Console de Test en Direct</span>
-                                    {activeFunction && (
-                                        <Badge
-                                            variant="outline"
-                                            className="font-mono text-[10px]"
-                                        >
-                                            POST /invoke
-                                        </Badge>
-                                    )}
-                                </CardTitle>
-                                <CardDescription className="text-xs">
-                                    Exécutez votre fonction avec un payload JSON
-                                    de test sans quitter l&apos;éditeur.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                <MonacoCodeEditor
-                                    value={testPayload}
-                                    onChange={setTestPayload}
-                                    language="json"
-                                    height={140}
-                                />
-                                <Button
+                    {/* Right Column: Supabase-style Tabbed Inspector (Test / Logs / Secrets) */}
+                    <div className="lg:col-span-4">
+                        <div className="flex h-full flex-col overflow-hidden rounded-xl border bg-card shadow-xs">
+                            <div className="grid grid-cols-3 border-b bg-muted/30 p-1 text-xs">
+                                <button
                                     type="button"
-                                    size="sm"
-                                    className="w-full"
-                                    disabled={!activeFunction}
-                                    onClick={handleInvokeCurrentFunction}
+                                    onClick={() => setRightTab('test')}
+                                    className={`rounded-md py-1.5 font-medium transition ${
+                                        rightTab === 'test'
+                                            ? 'bg-background text-foreground shadow-xs'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
                                 >
-                                    <Play className="mr-1.5 size-3.5" />
-                                    {activeFunction
-                                        ? `Exécuter ${activeFunction.name}.php`
-                                        : "Enregistrez d'abord la fonction"}
-                                </Button>
+                                    Tester
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setRightTab('logs')}
+                                    className={`rounded-md py-1.5 font-medium transition ${
+                                        rightTab === 'logs'
+                                            ? 'bg-background text-foreground shadow-xs'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                >
+                                    Logs ({logsCount})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setRightTab('secrets')}
+                                    className={`rounded-md py-1.5 font-medium transition ${
+                                        rightTab === 'secrets'
+                                            ? 'bg-background text-foreground shadow-xs'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                >
+                                    Secrets ({allEnvKeys.length})
+                                </button>
+                            </div>
 
-                                {flash?.functionResult &&
-                                    activeFunction &&
-                                    flash.functionResult.function_id ===
-                                        activeFunction.id && (
-                                        <div className="space-y-2 pt-2">
-                                            <div className="flex items-center justify-between text-xs">
-                                                <Badge
-                                                    variant={
-                                                        flash.functionResult
-                                                            .error
-                                                            ? 'destructive'
-                                                            : 'secondary'
-                                                    }
-                                                >
-                                                    HTTP{' '}
-                                                    {
-                                                        flash.functionResult
-                                                            .status
-                                                    }
-                                                </Badge>
-                                                <span className="font-mono text-xs text-muted-foreground">
-                                                    {
-                                                        flash.functionResult
-                                                            .duration_ms
-                                                    }{' '}
-                                                    ms
-                                                </span>
-                                            </div>
-                                            <PrismCodeBlock
-                                                code={JSON.stringify(
-                                                    flash.functionResult.error
-                                                        ? {
-                                                              error: flash
-                                                                  .functionResult
-                                                                  .error,
-                                                          }
-                                                        : flash.functionResult
-                                                              .data,
-                                                    null,
-                                                    2,
-                                                )}
-                                                language="json"
-                                                title="Résultat d'exécution"
-                                                maxHeight="200px"
-                                            />
+                            <div className="flex-1 p-4">
+                                {rightTab === 'test' && (
+                                    <div className="space-y-3">
+                                        <div>
+                                            <h3 className="text-xs font-semibold">
+                                                Payload JSON d&apos;invocation
+                                            </h3>
+                                            <p className="text-[11px] text-muted-foreground">
+                                                Envoyé dans{' '}
+                                                <code className="font-mono">
+                                                    $event[&apos;payload&apos;]
+                                                </code>
+                                                .
+                                            </p>
                                         </div>
-                                    )}
-                            </CardContent>
-                        </Card>
+                                        <MonacoCodeEditor
+                                            value={testPayload}
+                                            onChange={setTestPayload}
+                                            language="json"
+                                            height={170}
+                                        />
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
+                                            disabled={!activeFunction}
+                                            onClick={
+                                                handleInvokeCurrentFunction
+                                            }
+                                        >
+                                            <Play className="mr-1.5 size-3.5" />
+                                            {activeFunction
+                                                ? `Invoquer ${activeFunction.name}`
+                                                : "Déployez d'abord la fonction"}
+                                        </Button>
 
-                        {/* Available Environment Variables Summary */}
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="text-sm">
-                                        Variables d&apos;Environnement (
-                                        {allEnvKeys.length})
-                                    </CardTitle>
-                                    <Link
-                                        href={`/dashboard/apps/${app.id}/functions/env`}
-                                        className="text-xs font-medium text-emerald-600 hover:underline"
-                                    >
-                                        Gérer →
-                                    </Link>
-                                </div>
-                                <CardDescription className="text-xs">
-                                    Injectées dans{' '}
-                                    <code className="font-mono">
-                                        $context-&gt;env
-                                    </code>
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {allEnvKeys.length === 0 ? (
-                                    <p className="text-xs text-muted-foreground">
-                                        Aucune variable configurée. Cliquez sur
-                                        « Gérer » pour en ajouter.
-                                    </p>
-                                ) : (
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {allEnvKeys.map((key) => (
-                                            <Badge
-                                                key={key}
-                                                variant="secondary"
-                                                className="font-mono text-[10px]"
-                                            >
-                                                $context-&gt;env[&apos;{key}
-                                                &apos;]
-                                            </Badge>
-                                        ))}
+                                        {flash?.functionResult &&
+                                            activeFunction &&
+                                            flash.functionResult.function_id ===
+                                                activeFunction.id && (
+                                                <div className="space-y-2 border-t pt-3">
+                                                    <div className="flex items-center justify-between text-xs">
+                                                        <Badge
+                                                            variant={
+                                                                flash
+                                                                    .functionResult
+                                                                    .error
+                                                                    ? 'destructive'
+                                                                    : 'secondary'
+                                                            }
+                                                        >
+                                                            HTTP{' '}
+                                                            {
+                                                                flash
+                                                                    .functionResult
+                                                                    .status
+                                                            }
+                                                        </Badge>
+                                                        <span className="font-mono text-xs text-muted-foreground">
+                                                            {
+                                                                flash
+                                                                    .functionResult
+                                                                    .duration_ms
+                                                            }{' '}
+                                                            ms
+                                                        </span>
+                                                    </div>
+                                                    <PrismCodeBlock
+                                                        code={JSON.stringify(
+                                                            flash.functionResult
+                                                                .error
+                                                                ? {
+                                                                      error: flash
+                                                                          .functionResult
+                                                                          .error,
+                                                                  }
+                                                                : flash
+                                                                      .functionResult
+                                                                      .data,
+                                                            null,
+                                                            2,
+                                                        )}
+                                                        language="json"
+                                                        title="Réponse JSON"
+                                                        maxHeight="260px"
+                                                    />
+                                                </div>
+                                            )}
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
 
-                        {/* Recent Logs */}
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm">
-                                    Historique des Logs
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {!activeFunction ||
-                                !activeFunction.logs ||
-                                activeFunction.logs.length === 0 ? (
-                                    <p className="py-4 text-center text-xs text-muted-foreground">
-                                        Aucun log d&apos;exécution.
-                                    </p>
-                                ) : (
-                                    <div className="max-h-60 space-y-2 overflow-y-auto text-xs">
-                                        {activeFunction.logs.map((log, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="rounded-lg border p-2"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <Badge
-                                                        variant={
-                                                            log.error
-                                                                ? 'destructive'
-                                                                : 'secondary'
-                                                        }
-                                                        className="text-[10px]"
-                                                    >
-                                                        HTTP {log.status}
-                                                    </Badge>
-                                                    <span className="font-mono text-[10px] text-muted-foreground">
-                                                        {log.duration_ms} ms
-                                                    </span>
-                                                </div>
-                                                <div className="mt-1 truncate font-mono text-[11px] text-muted-foreground">
-                                                    {log.error || log.output}
-                                                </div>
+                                {rightTab === 'logs' && (
+                                    <div className="space-y-2">
+                                        {!activeFunction ||
+                                        !activeFunction.logs ||
+                                        activeFunction.logs.length === 0 ? (
+                                            <div className="py-10 text-center text-xs text-muted-foreground">
+                                                Aucun journal d&apos;exécution
+                                                enregistré.
                                             </div>
-                                        ))}
+                                        ) : (
+                                            <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1 text-xs">
+                                                {activeFunction.logs.map(
+                                                    (log, idx) => (
+                                                        <div
+                                                            key={idx}
+                                                            className="rounded-lg border p-2.5"
+                                                        >
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <Badge
+                                                                    variant={
+                                                                        log.error
+                                                                            ? 'destructive'
+                                                                            : 'secondary'
+                                                                    }
+                                                                    className="h-5 font-mono text-[10px]"
+                                                                >
+                                                                    HTTP{' '}
+                                                                    {log.status}
+                                                                </Badge>
+                                                                <span className="font-mono text-[10px] text-muted-foreground">
+                                                                    {
+                                                                        log.duration_ms
+                                                                    }{' '}
+                                                                    ms
+                                                                </span>
+                                                            </div>
+                                                            {log.timestamp && (
+                                                                <div className="mt-1 font-mono text-[10px] text-muted-foreground">
+                                                                    {formatDateTime(
+                                                                        log.timestamp,
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            <div className="mt-1.5 rounded bg-muted/40 p-1.5 font-mono text-[11px] break-all text-muted-foreground">
+                                                                {log.error ||
+                                                                    log.output ||
+                                                                    'OK'}
+                                                            </div>
+                                                        </div>
+                                                    ),
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
+
+                                {rightTab === 'secrets' && (
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-xs text-muted-foreground">
+                                                Disponibles via{' '}
+                                                <code className="font-mono">
+                                                    $context-&gt;env
+                                                </code>
+                                            </p>
+                                            <Link
+                                                href={`/dashboard/apps/${app.id}/functions/env`}
+                                                className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                                            >
+                                                Gérer →
+                                            </Link>
+                                        </div>
+
+                                        {allEnvKeys.length === 0 ? (
+                                            <div className="rounded-lg border border-dashed py-10 text-center text-xs text-muted-foreground">
+                                                Aucune variable
+                                                d&apos;environnement configurée.
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-1.5">
+                                                {allEnvKeys.map((key) => (
+                                                    <div
+                                                        key={key}
+                                                        className="flex items-center justify-between rounded-md border bg-muted/20 px-2.5 py-2 font-mono text-[11px]"
+                                                    >
+                                                        <span className="truncate font-medium">
+                                                            {key}
+                                                        </span>
+                                                        <span className="text-[10px] text-muted-foreground">
+                                                            ••••••••
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -651,3 +781,20 @@ export default function ClientAppFunctionEditor({
         </>
     );
 }
+
+ClientAppFunctionEditor.layout = {
+    breadcrumbs: [
+        {
+            title: 'Mes Applications',
+            href: dashboard(),
+        },
+        {
+            title: 'Edge / Web Functions PHP',
+            href: '#',
+        },
+        {
+            title: 'Éditeur PHP (IDE)',
+            href: '#',
+        },
+    ],
+};

@@ -475,6 +475,34 @@ class NoSqlDatabaseEngine
     }
 
     /**
+     * Count documents matching optional SQLite JSON1 filters in a collection.
+     *
+     * @param  array<int, array{field?: string, operator?: string, value?: mixed}>  $filters
+     */
+    public function count(string $collection, array $filters = []): int
+    {
+        $cleanCollection = $this->sanitizeIdentifier($collection);
+
+        $query = $this->connection()
+            ->table('records')
+            ->where('collection', $cleanCollection);
+
+        foreach ($filters as $filter) {
+            if (! is_array($filter) || empty($filter['field'])) {
+                continue;
+            }
+
+            $field = (string) $filter['field'];
+            $operator = strtolower((string) ($filter['operator'] ?? '='));
+            $value = $filter['value'] ?? null;
+
+            $this->applyJsonFilter($query, $field, $operator, $value);
+        }
+
+        return (int) $query->count();
+    }
+
+    /**
      * Normalize a collection schema definition or return null if empty.
      *
      * @param  array<string, mixed>|null  $schema

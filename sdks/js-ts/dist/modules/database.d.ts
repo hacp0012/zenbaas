@@ -1,5 +1,5 @@
 import type { HttpClient } from '../core/http-client.js';
-import type { FilterOperator, ZenbaseBlobValue, ZenbaseCollectionSchema, ZenbaseDocument, ZenbaseQueryResult, ZenbaseResponse } from '../types/index.js';
+import type { FilterOperator, ZenbaseBlobValue, ZenbaseCollectionSchema, ZenbaseCollectionSummary, ZenbaseDocument, ZenbasePaginatedResult, ZenbasePaginateOptions, ZenbaseQueryResult, ZenbaseResponse } from '../types/index.js';
 /**
  * Utilitaire officiel Zenbase pour encoder/décoder des champs binaires BLOB dans la base NoSQL JSON.
  */
@@ -53,6 +53,14 @@ export declare class CollectionQueryBuilder<T = Record<string, unknown>> {
      */
     where(field: string, operator: FilterOperator, value?: unknown): this;
     /**
+     * Raccourci pour `.where(field, 'in', values)`.
+     */
+    whereIn(field: string, values: unknown[]): this;
+    /**
+     * Raccourci pour `.where(field, 'contains', value)`.
+     */
+    whereContains(field: string, value: string): this;
+    /**
      * Trie les documents par un champ JSON ou une colonne système (`created_at`, `updated_at`, `id`).
      */
     orderBy(field: string, direction?: 'asc' | 'desc'): this;
@@ -75,6 +83,22 @@ export declare class CollectionQueryBuilder<T = Record<string, unknown>> {
      */
     select(): Promise<ZenbaseQueryResult<T>>;
     /**
+     * Retourne uniquement le premier document correspondant aux filtres et au tri courant (ou `null`).
+     */
+    first(): Promise<ZenbaseResponse<ZenbaseDocument<T> | null>>;
+    /**
+     * Compte le nombre de documents correspondant aux filtres courants sans transférer les documents.
+     */
+    count(): Promise<ZenbaseResponse<number>>;
+    /**
+     * Vérifie si un document existe (par son `id` ou selon les filtres courants).
+     */
+    exists(id?: string): Promise<ZenbaseResponse<boolean>>;
+    /**
+     * Pagine les documents de la collection côté serveur avec recherche plein-texte optionnelle.
+     */
+    paginate(options?: ZenbasePaginateOptions): Promise<ZenbaseResponse<ZenbasePaginatedResult<T>>>;
+    /**
      * Récupère un document unique par son identifiant UUID.
      */
     find(id: string): Promise<ZenbaseResponse<ZenbaseDocument<T>>>;
@@ -86,6 +110,14 @@ export declare class CollectionQueryBuilder<T = Record<string, unknown>> {
      * Met à jour un document existant par son identifiant UUID.
      */
     update(id: string, partialDocument: Partial<T>, replace?: boolean): Promise<ZenbaseResponse<ZenbaseDocument<T>>>;
+    /**
+     * Remplace intégralement le contenu JSON d'un document existant (équivalent à `.update(id, doc, true)`).
+     */
+    replace(id: string, document: T): Promise<ZenbaseResponse<ZenbaseDocument<T>>>;
+    /**
+     * Met à jour un document s'il existe déjà sous cet `id`, ou le crée automatiquement sinon.
+     */
+    upsert(id: string, document: T, replace?: boolean): Promise<ZenbaseResponse<ZenbaseDocument<T>>>;
     /**
      * Supprime un document par son identifiant UUID.
      */
@@ -107,6 +139,13 @@ export declare class CollectionQueryBuilder<T = Record<string, unknown>> {
         collection: string;
         schema: ZenbaseCollectionSchema | null;
     }>>;
+    /**
+     * Supprime cette collection ainsi que tous ses documents.
+     */
+    deleteCollection(): Promise<ZenbaseResponse<{
+        deleted: boolean;
+        collection: string;
+    }>>;
 }
 export declare class DatabaseModule {
     private readonly http;
@@ -123,11 +162,20 @@ export declare class DatabaseModule {
     /**
      * Liste toutes les collections de l'application courante.
      */
-    listCollections(): Promise<ZenbaseResponse<Array<{
+    listCollections(): Promise<ZenbaseResponse<ZenbaseCollectionSummary[]>>;
+    /**
+     * Crée explicitement une collection NoSQL (avec un schéma de validation optionnel).
+     */
+    createCollection(name: string, schema?: ZenbaseCollectionSchema | null): Promise<ZenbaseResponse<{
         name: string;
-        count: number;
         schema: ZenbaseCollectionSchema | null;
-        created_at: string | null;
-    }>>>;
+    }>>;
+    /**
+     * Supprime définitivement une collection et l'ensemble de ses documents.
+     */
+    deleteCollection(name: string): Promise<ZenbaseResponse<{
+        deleted: boolean;
+        collection: string;
+    }>>;
 }
 //# sourceMappingURL=database.d.ts.map

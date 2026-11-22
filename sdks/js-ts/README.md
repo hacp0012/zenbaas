@@ -61,10 +61,10 @@ Le client `Zenbase` regroupe les 4 piliers de votre backend au sein d'une interf
 
 | Module | Accès SDK | Rôle principal |
 | :--- | :--- | :--- |
-| **Database NoSQL & BLOB** | `zb.collection(name)` / `zb.database` / `zb.blob` | Collections JSON1 sans migration, filtres avancés, validation de schéma optionnelle et stockage binaire BLOB intégré. |
-| **Authentication** | `zb.auth` | Inscription, connexion Email/Mot de passe, authentification sans mot de passe par code OTP à 6 chiffres et gestion automatique du token Bearer. |
-| **Cloud Storage** | `zb.storage` | Téléversement (`File`, `Blob`, `Buffer`, `Uint8Array`), organisation par dossiers logiques et suppression de fichiers isolés par application. |
-| **Serverless Functions** | `zb.functions` | Exécution à la demande de vos Web Functions PHP isolées avec mesure du temps d'exécution. |
+| **Database NoSQL & BLOB** | `zb.collection(name)` / `zb.database` / `zb.blob` | Collections JSON1 sans migration (`createCollection`, `deleteCollection`), filtres avancés (`whereIn`, `whereContains`), pagination serveur (`paginate`, `count`, `first`, `exists`, `upsert`, `replace`), schémas optionnels et stockage binaire BLOB intégré. |
+| **Authentication** | `zb.auth` | Inscription, connexion Email/Mot de passe, OTP 6 chiffres, changement de mot de passe (`updatePassword`), écouteurs temps réel (`onAuthStateChange`), gestion automatique et locale de session (`isAuthenticated`, `clearSession`). |
+| **Cloud Storage** | `zb.storage` | Téléversement (`File`, `Blob`, `Buffer`, `Uint8Array`), téléchargement binaire (`download`), URLs publiques/téléchargement (`getPublicUrl`, `getDownloadUrl`), suppression par lot (`deleteMany`) et suivi du quota (`getUsage`). |
+| **Serverless Functions** | `zb.functions` | Découverte (`list`) et exécution à la demande (`invoke` avec en-têtes personnalisés) de vos Web Functions PHP isolées avec mesure du temps d'exécution. |
 
 ---
 

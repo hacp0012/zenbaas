@@ -28,6 +28,27 @@ export class Zenbase {
     public collection<T = Record<string, unknown>>(name: string): CollectionQueryBuilder<T> {
         return this.database.collection<T>(name);
     }
+
+    /**
+     * Ajoute ou met à jour un en-tête HTTP personnalisé envoyé avec toutes les requêtes SDK.
+     */
+    public setHeader(key: string, value: string): void {
+        this.http.setHeader(key, value);
+    }
+
+    /**
+     * Supprime un en-tête HTTP personnalisé précédemment configuré.
+     */
+    public removeHeader(key: string): void {
+        this.http.removeHeader(key);
+    }
+
+    /**
+     * Retourne l'URL de base de la passerelle API Zenbase (`/api/v1`).
+     */
+    public getEndpoint(): string {
+        return this.http.getBaseUrl();
+    }
 }
 
 /**

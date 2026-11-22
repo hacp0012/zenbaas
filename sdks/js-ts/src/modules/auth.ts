@@ -1,6 +1,8 @@
 import type { HttpClient } from '../core/http-client.js';
 import type {
+    ZenbaseAuthEvent,
     ZenbaseAuthSession,
+    ZenbaseAuthStateChangeCallback,
     ZenbaseOtpDispatchResult,
     ZenbaseResponse,
     ZenbaseUser,
@@ -8,6 +10,7 @@ import type {
 
 export class AuthModule {
     private currentUser: ZenbaseUser | null = null;
+    private readonly listeners = new Set<ZenbaseAuthStateChangeCallback>();
 
     constructor(private readonly http: HttpClient) {}
 
@@ -26,6 +29,7 @@ export class AuthModule {
         if (response.data?.token) {
             this.http.setUserToken(response.data.token);
             this.currentUser = response.data.user;
+            this.emit('SIGNED_UP');
         }
 
         return {
@@ -54,6 +58,7 @@ export class AuthModule {
         if (response.data?.token) {
             this.http.setUserToken(response.data.token);
             this.currentUser = response.data.user;
+            this.emit('SIGNED_IN');
         }
 
         return {
@@ -106,6 +111,7 @@ export class AuthModule {
         if (response.data?.token) {
             this.http.setUserToken(response.data.token);
             this.currentUser = response.data.user;
+            this.emit('SIGNED_IN');
         }
 
         return {
@@ -123,20 +129,64 @@ export class AuthModule {
         const response = await this.http.request<{ user: ZenbaseUser }>('GET', '/auth/user');
         if (response.data?.user) {
             this.currentUser = response.data.user;
+            this.emit('USER_UPDATED');
         }
 
         return response;
     }
 
     /**
-     * Déconnecte l'utilisateur courant et révoque son token.
+     * Met à jour le mot de passe de l'utilisateur actuellement authentifié.
+     */
+    public async updatePassword(
+        currentPassword: string | null,
+        newPassword: string,
+    ): Promise<ZenbaseResponse<{ updated: boolean; user: ZenbaseUser }>> {
+        const response = await this.http.request<{ updated: boolean; user: ZenbaseUser }>(
+            'PUT',
+            '/auth/password',
+            {
+                body: {
+                    current_password: currentPassword,
+                    new_password: newPassword,
+                },
+            },
+        );
+
+        if (response.data?.user) {
+            this.currentUser = response.data.user;
+            this.emit('USER_UPDATED');
+        }
+
+        return response;
+    }
+
+    /**
+     * Déconnecte l'utilisateur courant et révoque son token côté serveur.
      */
     public async signOut(): Promise<ZenbaseResponse<{ signed_out: boolean }>> {
         const response = await this.http.request<{ signed_out: boolean }>('POST', '/auth/signout');
         this.http.setUserToken(null);
         this.currentUser = null;
+        this.emit('SIGNED_OUT');
 
         return response;
+    }
+
+    /**
+     * Efface la session locale (token + utilisateur en cache) sans effectuer d'appel réseau.
+     */
+    public clearSession(): void {
+        this.http.setUserToken(null);
+        this.currentUser = null;
+        this.emit('SIGNED_OUT');
+    }
+
+    /**
+     * Indique si un token de session utilisateur est actuellement configuré dans le client.
+     */
+    public isAuthenticated(): boolean {
+        return Boolean(this.http.getUserToken());
     }
 
     /**
@@ -151,6 +201,10 @@ export class AuthModule {
      */
     public setToken(token: string | null): void {
         this.http.setUserToken(token);
+        if (!token) {
+            this.currentUser = null;
+        }
+        this.emit('TOKEN_CHANGED');
     }
 
     /**
@@ -158,5 +212,32 @@ export class AuthModule {
      */
     public getCachedUser(): ZenbaseUser | null {
         return this.currentUser;
+    }
+
+    /**
+     * S'abonne aux changements d'état d'authentification (`SIGNED_IN`, `SIGNED_UP`, `SIGNED_OUT`, `TOKEN_CHANGED`, `USER_UPDATED`).
+     * Retourne une fonction de désabonnement `unsubscribe()`.
+     */
+    public onAuthStateChange(callback: ZenbaseAuthStateChangeCallback): () => void {
+        this.listeners.add(callback);
+
+        return () => {
+            this.listeners.delete(callback);
+        };
+    }
+
+    private emit(event: ZenbaseAuthEvent): void {
+        const session = {
+            user: this.currentUser,
+            token: this.http.getUserToken(),
+        };
+
+        for (const listener of this.listeners) {
+            try {
+                listener(event, session);
+            } catch {
+                // Ignore listener exceptions to avoid breaking auth flow
+            }
+        }
     }
 }

@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Code2, Database, Globe, ShieldAlert, Users } from 'lucide-react';
+import { BookOpen, Database, Globe, ShieldAlert, Users } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -51,11 +51,6 @@ export function AppSidebar() {
             title: 'Accueil Public Zenbase',
             href: home(),
             icon: Globe,
-        },
-        {
-            title: 'Stubs IDE (PHP Functions)',
-            href: '/dashboard/stubs/zenbase-stubs.php',
-            icon: Code2,
         },
     ];
 

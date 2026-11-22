@@ -164,6 +164,24 @@ class AuthManager
     }
 
     /**
+     * Update an authenticated tenant user's password after verifying the current password when set.
+     */
+    public function updatePassword(TenantUser $user, ?string $currentPassword, string $newPassword): TenantUser
+    {
+        if ($user->password_hash !== null && $user->password_hash !== '') {
+            if (! $currentPassword || ! Hash::check($currentPassword, $user->password_hash)) {
+                throw new RuntimeException('Le mot de passe actuel est incorrect.');
+            }
+        }
+
+        $user->update([
+            'password_hash' => Hash::make($newPassword),
+        ]);
+
+        return $user->fresh() ?? $user;
+    }
+
+    /**
      * Revoke the current user's access token.
      */
     public function signOut(TenantUser $user): void

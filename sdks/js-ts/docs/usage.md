@@ -29,7 +29,13 @@ import { Zenbase } from '@zenbase/sdk';
 export const zbAdmin = new Zenbase({
   endpoint: process.env.ZENBASE_ENDPOINT!,
   apiKey: process.env.ZENBASE_SECRET_KEY!, // zb_sec_... (contourne les restrictions CORS navigateur)
+  timeoutMs: 10000, // Timeout optionnel en millisecondes
 });
+
+// En-têtes dynamiques après initialisation
+zbAdmin.setHeader('X-App-Version', '2.1.0');
+zbAdmin.removeHeader('X-App-Version');
+console.log(zbAdmin.getEndpoint()); // https://.../api/v1
 ```
 
 ---
@@ -104,9 +110,9 @@ const { data: item, error } = await zb
   .find('550e8400-e29b-41d4-a716-446655440000');
 ```
 
-### D. Mettre à jour un document (`update`)
+### D. Mettre à jour, remplacer ou faire un Upsert (`update`, `replace`, `upsert`)
 
-Par défaut, `update` fusionne (`merge`) les champs fournis avec le document JSON existant. Passez `true` en 3ème argument si vous souhaitez remplacer l'intégralité du document JSON.
+Par défaut, `update` fusionne (`merge`) les champs fournis avec le document JSON existant. Utilisez `replace` pour remplacer l'intégralité du document JSON, ou `upsert` pour mettre à jour un document existant et le créer automatiquement s'il n'existe pas encore :
 
 ```typescript
 // Fusion partielle (met uniquement à jour le prix et inStock)
@@ -116,9 +122,54 @@ const { data: updated, error } = await zb
     price: 69.99,
     inStock: false,
   });
+
+// Remplacement complet du document JSON
+await zb.collection<Product>('products').replace(product.id, {
+  name: 'Casque Bluetooth Pro v2',
+  price: 89.99,
+  inStock: true,
+});
+
+// Upsert : met à jour le document 'featured-product' ou le crée s'il n'existe pas
+await zb.collection<Product>('products').upsert('featured-product', {
+  name: 'Offre Spéciale',
+  price: 49.99,
+  inStock: true,
+});
 ```
 
-### E. Supprimer un document (`delete`)
+### E. Raccourcis de requêtes : `first`, `count`, `exists`, `paginate`, `whereIn`, `whereContains`
+
+```typescript
+// Récupérer uniquement le premier document correspondant
+const { data: cheapest } = await zb
+  .collection<Product>('products')
+  .where('inStock', '==', true)
+  .orderBy('price', 'asc')
+  .first();
+
+// Compter les documents côté serveur sans les télécharger
+const { data: inStockCount } = await zb
+  .collection('products')
+  .whereIn('category', ['audio', 'tech'])
+  .whereContains('name', 'Casque')
+  .count();
+
+// Vérifier l'existence d'un document (par ID ou selon les filtres)
+const { data: hasFeatured } = await zb.collection('products').exists('featured-product');
+
+// Pagination serveur complète avec recherche plein-texte
+const { data: page1 } = await zb.collection<Product>('products').paginate({
+  page: 1,
+  perPage: 20,
+  search: 'Bluetooth',
+  orderBy: 'created_at',
+  direction: 'desc',
+});
+console.log(page1?.items, page1?.total, page1?.last_page);
+```
+
+### F. Supprimer un document (`delete`)
 
 ```typescript
 const { data, error } = await zb
@@ -126,11 +177,23 @@ const { data, error } = await zb
   .delete(product.id);
 ```
 
-### F. Lister toutes les collections de l'application (`database.listCollections`)
+### G. Créer, lister et supprimer des collections (`database.createCollection`, `listCollections`, `deleteCollection`)
 
 ```typescript
+// Créer explicitement une collection (avec schéma optionnel)
+await zb.database.createCollection('products', {
+  strict: false,
+  fields: [{ name: 'name', type: 'string', required: true }],
+});
+
+// Lister toutes les collections de l'application
 const { data: collections } = await zb.database.listCollections();
 // [{ name: 'products', count: 12, schema: { ... }, created_at: '...' }, ...]
+
+// Supprimer définitivement une collection et ses documents
+await zb.database.deleteCollection('old_logs');
+// ou directement depuis le builder :
+await zb.collection('old_logs').deleteCollection();
 ```
 
 ### G. Définir un Schéma Optionnel sur une Collection (`setSchema` / `getSchema`)
@@ -230,18 +293,37 @@ const { user, token, error: verifyError } = await zb.auth.verifyOtp(
 );
 ```
 
-### C. Profil de l'utilisateur courant & Déconnexion
+### C. Profil, Changement de Mot de Passe, Écouteurs d'État & Déconnexion
 
 ```typescript
-// Récupérer l'utilisateur associé au token actif
-const { data, error } = await zb.auth.getUser();
-console.log(data?.user);
+// S'abonner aux changements d'état d'authentification (React, Vue, etc.)
+const unsubscribe = zb.auth.onAuthStateChange((event, session) => {
+  console.log('Événement auth :', event, session.user?.email);
+});
+
+// Vérifier rapidement si un token est actif
+if (zb.auth.isAuthenticated()) {
+  const { data } = await zb.auth.getUser();
+  console.log(data?.user);
+}
+
+// Modifier le mot de passe de l'utilisateur authentifié
+const { data: pwdResult, error: pwdError } = await zb.auth.updatePassword(
+  'monSuperMotDePasse',
+  'nouveauMotDePasseTresSecurise'
+);
 
 // Restaurer manuellement un token sauvegardé (ex: depuis localStorage)
 zb.auth.setToken(savedToken);
 
-// Révoquer le token et déconnecter l'utilisateur
+// Révoquer le token côté serveur et déconnecter l'utilisateur
 await zb.auth.signOut();
+
+// Ou effacer la session uniquement en mémoire locale (sans requête HTTP)
+zb.auth.clearSession();
+
+// Se désabonner de l'écouteur
+unsubscribe();
 ```
 
 ---
@@ -280,7 +362,7 @@ const { url, error } = await zb.storage.upload('factures/2026-01.pdf', buffer, {
 });
 ```
 
-### B. Lister et supprimer des fichiers (`list`, `delete`)
+### B. Lister, Télécharger, Consulter le Quota et Supprimer (`list`, `download`, `getPublicUrl`, `getUsage`, `delete`, `deleteMany`)
 
 ```typescript
 // Lister tous les fichiers de l'application
@@ -289,8 +371,23 @@ const { data: allFiles } = await zb.storage.list();
 // Filtrer par dossier logique
 const { data: avatars } = await zb.storage.list('/avatars');
 
+// Générer les URLs publiques et de téléchargement sans appel réseau
+const publicUrl = zb.storage.getPublicUrl(fileId);
+const downloadUrl = zb.storage.getDownloadUrl(fileId);
+
+// Télécharger directement un fichier sous forme de Blob
+const { data: blob, error: dlError } = await zb.storage.download(fileId);
+
+// Consulter l'espace disque utilisé et le quota maximal attribué par l'administrateur
+const { data: usage } = await zb.storage.getUsage();
+console.log('Utilisé (octets) :', usage?.user_used_bytes, 'Quota (Mo) :', usage?.max_storage_mb);
+
 // Supprimer un fichier par son ID ou son chemin
 await zb.storage.delete(fileId);
+
+// Supprimer plusieurs fichiers en parallèle
+const { data: batch } = await zb.storage.deleteMany([fileId1, fileId2]);
+console.log('Supprimés :', batch?.deleted, 'Échecs :', batch?.failed);
 ```
 
 ---
@@ -299,7 +396,7 @@ await zb.storage.delete(fileId);
 
 Les **Web Functions** vous permettent d'exécuter du code métier PHP isolé côté serveur (configuré depuis l'onglet *Web Functions PHP* de votre application dans le Dashboard Zenbase).
 
-### A. Invoquer une fonction depuis le SDK (`invoke`)
+### A. Lister et invoquer des fonctions depuis le SDK (`list`, `invoke`)
 
 ```typescript
 interface WelcomeResponse {
@@ -307,11 +404,18 @@ interface WelcomeResponse {
   item_id: string;
 }
 
+// Lister les Web Functions actives de l'application
+const { data: availableFunctions } = await zb.functions.list();
+
+// Invoquer une fonction avec payload JSON et en-têtes HTTP personnalisés optionnels
 const { data, error, meta } = await zb.functions.invoke<WelcomeResponse>(
   'send-welcome-email',
   {
     name: 'Alex',
     plan: 'starter',
+  },
+  {
+    headers: { 'X-Idempotency-Key': 'welcome-alex-001' },
   }
 );
 

@@ -1,6 +1,8 @@
 import type { HttpClient } from '../core/http-client.js';
 import type {
+    ZenbaseBatchDeleteResult,
     ZenbaseResponse,
+    ZenbaseStorageUsage,
     ZenbaseStoredFile,
     ZenbaseUploadResult,
 } from '../types/index.js';
@@ -71,6 +73,51 @@ export class StorageModule {
     }
 
     /**
+     * Récupère l'utilisation actuelle du stockage et le quota maximal attribué au propriétaire du compte.
+     */
+    public async getUsage(): Promise<ZenbaseResponse<ZenbaseStorageUsage>> {
+        return this.http.request<ZenbaseStorageUsage>('GET', '/storage/usage');
+    }
+
+    /**
+     * Construit l'URL publique directe d'un fichier à partir de son UUID, son chemin tenant ou son URL.
+     */
+    public getPublicUrl(fileIdOrPath: string): string {
+        if (/^https?:\/\//i.test(fileIdOrPath)) {
+            return fileIdOrPath;
+        }
+
+        const clean = fileIdOrPath.replace(/^\/+/, '');
+        const origin = this.http.getOriginUrl();
+
+        if (clean.startsWith('storage/')) {
+            return `${origin}/${clean}`;
+        }
+
+        if (clean.startsWith('tenants/')) {
+            return `${origin}/storage/${clean}`;
+        }
+
+        return `${origin}/storage/files/${encodeURIComponent(clean)}`;
+    }
+
+    /**
+     * Construit l'URL de téléchargement forcé (`?download=1`) d'un fichier.
+     */
+    public getDownloadUrl(fileIdOrPath: string): string {
+        const base = this.getPublicUrl(fileIdOrPath);
+
+        return base.includes('?') ? `${base}&download=1` : `${base}?download=1`;
+    }
+
+    /**
+     * Télécharge le contenu binaire d'un fichier sous forme de `Blob`.
+     */
+    public async download(fileIdOrPath: string): Promise<ZenbaseResponse<Blob>> {
+        return this.http.downloadBlob(this.getDownloadUrl(fileIdOrPath));
+    }
+
+    /**
      * Supprime un fichier par son identifiant UUID ou son chemin.
      */
     public async delete(
@@ -80,5 +127,31 @@ export class StorageModule {
             'DELETE',
             `/storage/files/${encodeURIComponent(fileIdOrPath)}`,
         );
+    }
+
+    /**
+     * Supprime plusieurs fichiers en parallèle et retourne le récapitulatif des succès et échecs.
+     */
+    public async deleteMany(
+        fileIdsOrPaths: string[],
+    ): Promise<ZenbaseResponse<ZenbaseBatchDeleteResult>> {
+        const deleted: string[] = [];
+        const failed: Array<{ file: string; error: string }> = [];
+
+        await Promise.all(
+            fileIdsOrPaths.map(async (item) => {
+                const res = await this.delete(item);
+                if (res.error) {
+                    failed.push({ file: item, error: res.error });
+                } else {
+                    deleted.push(item);
+                }
+            }),
+        );
+
+        return {
+            data: { deleted, failed },
+            error: failed.length > 0 ? `${failed.length} fichier(s) n'ont pas pu être supprimés.` : null,
+        };
     }
 }
