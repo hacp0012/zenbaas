@@ -52,17 +52,17 @@ class VerifyApiKey
             ], 401);
         }
 
+        $role = $app->secret_key === $apiKey ? 'secret' : 'public';
+
+        $request->attributes->set('current_app', $app);
+        $request->attributes->set('api_key_role', $role);
+
         if ($app->user && $app->user->is_suspended) {
             return response()->json([
                 'data' => null,
                 'error' => 'Le compte propriétaire de cette application est suspendu.',
             ], 403);
         }
-
-        $role = $app->secret_key === $apiKey ? 'secret' : 'public';
-
-        $request->attributes->set('current_app', $app);
-        $request->attributes->set('api_key_role', $role);
 
         $app->increment('api_calls_count');
 

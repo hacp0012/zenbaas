@@ -90,6 +90,7 @@ export default function DocsShow({
         () => headings[0]?.id ?? null,
     );
     const markdownContainerRef = useRef<HTMLDivElement | null>(null);
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         if (viewMode === 'rendered' && markdownContainerRef.current) {
@@ -108,6 +109,9 @@ export default function DocsShow({
             setActiveHeadingId(hashId);
         } else {
             setActiveHeadingId(headings[0].id);
+            if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTop = 0;
+            }
         }
     }, [currentDoc?.path, headings]);
 
@@ -116,7 +120,7 @@ export default function DocsShow({
             return;
         }
 
-        const activationOffset = 128;
+        const scrollContainer = scrollContainerRef.current;
         let rafId: number | null = null;
 
         const updateActiveHeading = () => {
@@ -136,6 +140,39 @@ export default function DocsShow({
                 return;
             }
 
+            const isInnerScrolling =
+                scrollContainer !== null &&
+                scrollContainer.scrollHeight > scrollContainer.clientHeight + 4;
+
+            if (isInnerScrolling && scrollContainer) {
+                const isAtBottom =
+                    scrollContainer.scrollTop + scrollContainer.clientHeight >=
+                    scrollContainer.scrollHeight - 24;
+
+                if (isAtBottom) {
+                    setActiveHeadingId(elements[elements.length - 1].id);
+                    return;
+                }
+
+                const containerTop = scrollContainer.getBoundingClientRect().top;
+                const innerOffset = 56;
+                let currentId = elements[0].id;
+
+                for (const item of elements) {
+                    if (
+                        item.el.getBoundingClientRect().top - containerTop <=
+                        innerOffset
+                    ) {
+                        currentId = item.id;
+                    } else {
+                        break;
+                    }
+                }
+
+                setActiveHeadingId(currentId);
+                return;
+            }
+
             const isAtBottom =
                 window.innerHeight + window.scrollY >=
                 document.documentElement.scrollHeight - 24;
@@ -145,9 +182,10 @@ export default function DocsShow({
                 return;
             }
 
+            const windowOffset = 128;
             let currentId = elements[0].id;
             for (const item of elements) {
-                if (item.el.getBoundingClientRect().top <= activationOffset) {
+                if (item.el.getBoundingClientRect().top <= windowOffset) {
                     currentId = item.id;
                 } else {
                     break;
@@ -165,10 +203,14 @@ export default function DocsShow({
         };
 
         updateActiveHeading();
+        scrollContainer?.addEventListener('scroll', handleScroll, {
+            passive: true,
+        });
         window.addEventListener('scroll', handleScroll, { passive: true });
         window.addEventListener('resize', handleScroll, { passive: true });
 
         return () => {
+            scrollContainer?.removeEventListener('scroll', handleScroll);
             window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('resize', handleScroll);
             if (rafId !== null) {
@@ -279,9 +321,9 @@ export default function DocsShow({
             <Head
                 title={`${currentDoc?.title ?? 'Documentation SDK'} — Documentation Zenbase`}
             />
-            <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+            <div className="flex min-h-screen flex-col bg-sidebar text-foreground lg:h-svh lg:overflow-hidden">
                 {/* Top Navigation Bar */}
-                <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/90">
+                <header className="sticky top-0 z-30 shrink-0 border-b border-sidebar-border/80 bg-sidebar/90 backdrop-blur lg:static">
                     <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3.5">
                         <div className="flex items-center gap-4">
                             <Link href={home()} className="flex items-center gap-2.5">
@@ -365,10 +407,10 @@ export default function DocsShow({
                 </header>
 
                 {/* Main 3-Column Documentation Layout */}
-                <div className="mx-auto grid max-w-[1600px] gap-6 px-6 py-8 lg:grid-cols-12">
+                <div className="mx-auto grid w-full max-w-[1600px] flex-1 gap-6 px-4 py-4 sm:px-6 lg:min-h-0 lg:grid-cols-12 lg:overflow-hidden lg:py-5">
                     {/* Left Sidebar: Platform & SDKs Navigation */}
-                    <aside className="lg:col-span-3 xl:col-span-2">
-                        <div className="sticky top-20 max-h-[calc(100vh-6rem)] space-y-6 overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
+                    <aside className="lg:col-span-3 lg:flex lg:min-h-0 lg:flex-col xl:col-span-2">
+                        <div className="space-y-6 overflow-y-auto rounded-3xl border border-border/60 bg-background/75 p-4 shadow-none dark:bg-background/60 lg:h-full">
                             <div className="flex items-center justify-between border-b pb-3">
                                 <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-zinc-500 uppercase">
                                     <FolderOpen className="size-4 text-emerald-600" />
@@ -490,9 +532,9 @@ export default function DocsShow({
                     </aside>
 
                     {/* Center: Rendered Markdown Content */}
-                    <main className="lg:col-span-6 xl:col-span-8">
+                    <main className="lg:col-span-6 lg:flex lg:min-h-0 lg:flex-col xl:col-span-8">
                         {!currentDoc ? (
-                            <div className="rounded-2xl border bg-white p-12 text-center dark:bg-zinc-900">
+                            <div className="flex flex-1 flex-col items-center justify-center rounded-3xl border border-border/80 bg-background p-12 text-center shadow-none md:rounded-[1.75rem]">
                                 <BookOpen className="mx-auto size-10 text-zinc-400" />
                                 <p className="mt-3 text-sm text-zinc-500">
                                     Aucun fichier Markdown (.md) trouvé dans{' '}
@@ -500,9 +542,9 @@ export default function DocsShow({
                                 </p>
                             </div>
                         ) : (
-                            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-xs sm:p-8 dark:border-zinc-800 dark:bg-zinc-900">
+                            <div className="flex flex-1 flex-col overflow-hidden rounded-3xl border border-border/80 bg-background shadow-none md:rounded-[1.75rem] lg:h-full lg:min-h-0">
                                 {/* File Metadata Toolbar */}
-                                <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4 dark:border-zinc-800">
+                                <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border/70 px-6 py-4 sm:px-8">
                                     <div className="flex items-center gap-2">
                                         <FileCode2 className="size-4 text-emerald-600" />
                                         <span className="font-mono text-xs text-zinc-500">
@@ -546,27 +588,33 @@ export default function DocsShow({
                                     </div>
                                 </div>
 
-                                {viewMode === 'raw' ? (
-                                    <PrismCodeBlock
-                                        code={rawMarkdown}
-                                        language="markdown"
-                                        title={currentDoc.path}
-                                    />
-                                ) : (
-                                    <div
-                                        ref={markdownContainerRef}
-                                        onClick={handleContentClick}
-                                        className="zenbase-markdown space-y-4 text-sm leading-relaxed [&_a]:font-semibold [&_a]:text-emerald-600 [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-emerald-500 [&_blockquote]:bg-emerald-500/5 [&_blockquote]:py-2 [&_blockquote]:pl-4 [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs dark:[&_code]:bg-zinc-800 [&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-extrabold [&_h1]:tracking-tight [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:scroll-mt-24 [&_h2]:border-b [&_h2]:pb-2 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:scroll-mt-24 [&_h3]:text-base [&_h3]:font-semibold [&_hr]:my-6 [&_hr]:border-zinc-200 dark:[&_hr]:border-zinc-800 [&_li]:ml-5 [&_li]:list-disc [&_ol_li]:list-decimal [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-zinc-300 [&_pre]:bg-[#FAFAF8] [&_pre]:p-4 [&_pre]:text-[#272822] dark:[&_pre]:border-zinc-800 dark:[&_pre]:bg-[#1E1F1C] dark:[&_pre]:text-[#F8F8F2] [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_table]:text-xs [&_td]:border [&_td]:border-zinc-200 [&_td]:p-2.5 dark:[&_td]:border-zinc-800 [&_th]:border [&_th]:border-zinc-200 [&_th]:bg-zinc-100 [&_th]:p-2.5 [&_th]:font-semibold dark:[&_th]:border-zinc-800 dark:[&_th]:bg-zinc-800/60"
-                                        dangerouslySetInnerHTML={{ __html: htmlContent }}
-                                    />
-                                )}
+                                <div
+                                    ref={scrollContainerRef}
+                                    scroll-region=""
+                                    className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8"
+                                >
+                                    {viewMode === 'raw' ? (
+                                        <PrismCodeBlock
+                                            code={rawMarkdown}
+                                            language="markdown"
+                                            title={currentDoc.path}
+                                        />
+                                    ) : (
+                                        <div
+                                            ref={markdownContainerRef}
+                                            onClick={handleContentClick}
+                                            className="zenbase-markdown space-y-4 text-sm leading-relaxed [&_a]:font-semibold [&_a]:text-emerald-600 [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-emerald-500 [&_blockquote]:bg-emerald-500/5 [&_blockquote]:py-2 [&_blockquote]:pl-4 [&_code]:rounded [&_code]:bg-zinc-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs dark:[&_code]:bg-zinc-800 [&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-extrabold [&_h1]:tracking-tight [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:scroll-mt-24 lg:[&_h2]:scroll-mt-6 [&_h2]:border-b [&_h2]:pb-2 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:scroll-mt-24 lg:[&_h3]:scroll-mt-6 [&_h3]:text-base [&_h3]:font-semibold [&_hr]:my-6 [&_hr]:border-zinc-200 dark:[&_hr]:border-zinc-800 [&_li]:ml-5 [&_li]:list-disc [&_ol_li]:list-decimal [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-zinc-300 [&_pre]:bg-[#FAFAF8] [&_pre]:p-4 [&_pre]:text-[#272822] dark:[&_pre]:border-zinc-800 dark:[&_pre]:bg-[#1E1F1C] dark:[&_pre]:text-[#F8F8F2] [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_table]:text-xs [&_td]:border [&_td]:border-zinc-200 [&_td]:p-2.5 dark:[&_td]:border-zinc-800 [&_th]:border [&_th]:border-zinc-200 [&_th]:bg-zinc-100 [&_th]:p-2.5 [&_th]:font-semibold dark:[&_th]:border-zinc-800 dark:[&_th]:bg-zinc-800/60"
+                                            dangerouslySetInnerHTML={{ __html: htmlContent }}
+                                        />
+                                    )}
+                                </div>
                             </div>
                         )}
                     </main>
 
                     {/* Right Sidebar: Table of Contents (Scrollspy) */}
-                    <aside className="lg:col-span-3 xl:col-span-2">
-                        <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
+                    <aside className="lg:col-span-3 lg:flex lg:min-h-0 lg:flex-col xl:col-span-2">
+                        <div className="overflow-y-auto rounded-3xl border border-border/60 bg-background/75 p-4 shadow-none dark:bg-background/60 lg:h-full">
                             <div className="mb-3 flex items-center gap-2 border-b pb-2.5 text-xs font-bold tracking-wider text-zinc-500 uppercase">
                                 <BookOpen className="size-4 text-emerald-600" />
                                 Sur cette page

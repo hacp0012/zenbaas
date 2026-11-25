@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppFile;
+use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Modules\Storage\Services\StorageManagerService;
 use App\Services\TenantManagerService;
@@ -73,9 +74,14 @@ class AdminUserController extends Controller
             'expires_at' => ['nullable', 'date'],
         ]);
 
+        $defaults = PlatformSetting::allSettings();
         $maxStorageMb = array_key_exists('max_storage_mb', $validated)
             ? ($validated['max_storage_mb'] !== null ? (int) $validated['max_storage_mb'] : null)
-            : 100;
+            : $defaults['default_user_max_storage_mb'];
+
+        $expiresAt = array_key_exists('expires_at', $validated)
+            ? (! empty($validated['expires_at']) ? $validated['expires_at'] : null)
+            : ($defaults['default_user_expiration_days'] !== null ? now()->addDays($defaults['default_user_expiration_days']) : null);
 
         User::query()->create([
             'name' => $validated['name'],
@@ -83,9 +89,9 @@ class AdminUserController extends Controller
             'password' => $validated['password'],
             'is_admin' => (bool) ($validated['is_admin'] ?? false),
             'is_suspended' => false,
-            'max_apps' => (int) ($validated['max_apps'] ?? 1),
+            'max_apps' => (int) ($validated['max_apps'] ?? $defaults['default_user_max_apps']),
             'max_storage_mb' => $maxStorageMb,
-            'expires_at' => ! empty($validated['expires_at']) ? $validated['expires_at'] : null,
+            'expires_at' => $expiresAt,
             'email_verified_at' => now(),
         ]);
 

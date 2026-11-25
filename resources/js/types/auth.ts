@@ -87,6 +87,16 @@ export type ZenbaseMcpSettings = {
     allow_storage_write: boolean;
 };
 
+export type ZenbaseRateLimitSettings = {
+    enabled: boolean;
+    key_by: 'app' | 'ip';
+    api_per_minute: number;
+    auth_per_minute: number;
+    functions_per_minute: number;
+    storage_per_minute: number;
+    mcp_per_minute: number;
+};
+
 export type ZenbaseMcpToolInfo = {
     name: string;
     module: string;
@@ -136,6 +146,8 @@ export type ZenbaseApp = {
     files_count?: number;
     functions_count?: number;
     cors_origins_count?: number;
+    logs_count?: number;
+    error_logs_count?: number;
     database_size_bytes: number;
     created_at: string | null;
     user?: {
@@ -148,6 +160,7 @@ export type ZenbaseApp = {
     files?: ZenbaseFile[];
     functions?: ZenbaseFunction[];
     mcp_settings?: ZenbaseMcpSettings;
+    rate_limits?: ZenbaseRateLimitSettings;
 };
 
 export type ZenbaseSchemaFieldType =

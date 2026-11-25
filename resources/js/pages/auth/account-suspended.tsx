@@ -35,9 +35,9 @@ export default function AccountSuspended({
     return (
         <>
             <Head title="Compte Suspendu — Zenbase BaaS" />
-            <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 px-4 py-12 dark:bg-zinc-950">
-                <div className="mb-6 flex items-center gap-2.5">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+            <div className="flex h-svh flex-col items-center justify-center overflow-hidden bg-sidebar px-4 py-6">
+                <div className="mb-6 flex shrink-0 items-center gap-2.5">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white">
                         <AppLogoIcon className="size-6 text-white" />
                     </div>
                     <span className="text-xl font-bold tracking-tight">
@@ -45,7 +45,7 @@ export default function AccountSuspended({
                     </span>
                 </div>
 
-                <Card className="w-full max-w-lg border-red-500/40 shadow-lg">
+                <Card className="max-h-full w-full max-w-lg overflow-y-auto rounded-3xl border-red-500/40 bg-background shadow-none md:rounded-[1.75rem]">
                     <CardHeader className="space-y-3 text-center">
                         <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-red-500/15 text-red-600 dark:text-red-400">
                             <AlertOctagon className="size-7" />

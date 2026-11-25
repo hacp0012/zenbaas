@@ -20,43 +20,48 @@ export default function ClientAppLayout({
     return (
         <AppShell variant="sidebar">
             <ClientAppSidebar />
-            <AppContent variant="sidebar" className="min-w-0 overflow-x-clip">
+            <AppContent variant="sidebar" className="min-w-0">
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
 
-                <div className="flex flex-1 flex-col gap-6 p-6">
-                    {app && (
-                        <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <Badge className="bg-emerald-600 text-white">
-                                        Application Active
-                                    </Badge>
-                                    <span className="font-mono text-xs text-muted-foreground">
-                                        app_{app.id}.sqlite
-                                    </span>
+                <div
+                    scroll-region=""
+                    className="flex min-h-0 flex-1 flex-col overflow-x-clip overflow-y-auto"
+                >
+                    <div className="flex flex-1 flex-col gap-6 p-6">
+                        {app && (
+                            <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge className="bg-emerald-600 text-white">
+                                            Application Active
+                                        </Badge>
+                                        <span className="font-mono text-xs text-muted-foreground">
+                                            app_{app.id}.sqlite
+                                        </span>
+                                    </div>
+                                    <h1 className="mt-1 text-2xl font-bold tracking-tight">
+                                        {app.name}
+                                    </h1>
+                                    {app.description && (
+                                        <p className="text-sm text-muted-foreground">
+                                            {app.description}
+                                        </p>
+                                    )}
                                 </div>
-                                <h1 className="mt-1 text-2xl font-bold tracking-tight">
-                                    {app.name}
-                                </h1>
-                                {app.description && (
-                                    <p className="text-sm text-muted-foreground">
-                                        {app.description}
-                                    </p>
-                                )}
-                            </div>
 
-                            <div className="flex items-center gap-2">
-                                <Button asChild variant="outline" size="sm">
-                                    <Link href={dashboard()}>
-                                        <ArrowLeft className="mr-1.5 size-3.5" />
-                                        Retour aux Applications
-                                    </Link>
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={dashboard()}>
+                                            <ArrowLeft className="mr-1.5 size-3.5" />
+                                            Retour aux Applications
+                                        </Link>
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {children}
+                        {children}
+                    </div>
                 </div>
             </AppContent>
         </AppShell>

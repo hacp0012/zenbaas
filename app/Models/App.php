@@ -105,6 +105,16 @@ class App extends Model
     }
 
     /**
+     * Get the per-application activity logs.
+     *
+     * @return HasMany<AppLog, $this>
+     */
+    public function logs(): HasMany
+    {
+        return $this->hasMany(AppLog::class);
+    }
+
+    /**
      * Return the default MCP configuration for an application.
      *
      * @return array{
@@ -152,6 +162,73 @@ class App extends Model
             'allow_functions' => ! $readOnly && (bool) ($mcp['allow_functions'] ?? $defaults['allow_functions']),
             'allow_auth_management' => ! $readOnly && (bool) ($mcp['allow_auth_management'] ?? $defaults['allow_auth_management']),
             'allow_storage_write' => ! $readOnly && (bool) ($mcp['allow_storage_write'] ?? $defaults['allow_storage_write']),
+        ];
+    }
+
+    /**
+     * Return the default rate limiting configuration for an application.
+     *
+     * @return array{
+     *     enabled: bool,
+     *     key_by: 'app'|'ip',
+     *     api_per_minute: int,
+     *     auth_per_minute: int,
+     *     functions_per_minute: int,
+     *     storage_per_minute: int,
+     *     mcp_per_minute: int
+     * }
+     */
+    public static function defaultRateLimitSettings(): array
+    {
+        $platform = PlatformSetting::allSettings();
+
+        return [
+            'enabled' => $platform['default_rate_limit_enabled'],
+            'key_by' => $platform['default_rate_limit_key_by'],
+            'api_per_minute' => $platform['default_api_rate_limit'],
+            'auth_per_minute' => $platform['default_auth_rate_limit'],
+            'functions_per_minute' => $platform['default_functions_rate_limit'],
+            'storage_per_minute' => $platform['default_storage_rate_limit'],
+            'mcp_per_minute' => $platform['default_mcp_rate_limit'],
+        ];
+    }
+
+    /**
+     * Return the normalized rate limiting configuration for this application.
+     *
+     * @return array{
+     *     enabled: bool,
+     *     key_by: 'app'|'ip',
+     *     api_per_minute: int,
+     *     auth_per_minute: int,
+     *     functions_per_minute: int,
+     *     storage_per_minute: int,
+     *     mcp_per_minute: int
+     * }
+     */
+    public function rateLimitSettings(): array
+    {
+        $defaults = self::defaultRateLimitSettings();
+        $configured = is_array($this->settings['rate_limits'] ?? null)
+            ? $this->settings['rate_limits']
+            : [];
+
+        $legacyApiLimit = isset($this->settings['rate_limit'])
+            ? (int) $this->settings['rate_limit']
+            : $defaults['api_per_minute'];
+
+        $keyBy = ($configured['key_by'] ?? $defaults['key_by']) === 'ip' ? 'ip' : 'app';
+
+        return [
+            'enabled' => array_key_exists('enabled', $configured)
+                ? (bool) $configured['enabled']
+                : $defaults['enabled'],
+            'key_by' => $keyBy,
+            'api_per_minute' => max(10, min(10000, (int) ($configured['api_per_minute'] ?? $legacyApiLimit))),
+            'auth_per_minute' => max(5, min(2000, (int) ($configured['auth_per_minute'] ?? $defaults['auth_per_minute']))),
+            'functions_per_minute' => max(5, min(5000, (int) ($configured['functions_per_minute'] ?? $defaults['functions_per_minute']))),
+            'storage_per_minute' => max(5, min(2000, (int) ($configured['storage_per_minute'] ?? $defaults['storage_per_minute']))),
+            'mcp_per_minute' => max(10, min(5000, (int) ($configured['mcp_per_minute'] ?? $legacyApiLimit))),
         ];
     }
 

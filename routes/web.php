@@ -1,11 +1,15 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminDiagnosticController;
+use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Dashboard\AppCorsController;
 use App\Http\Controllers\Dashboard\AppDatabaseController;
 use App\Http\Controllers\Dashboard\AppFunctionController;
+use App\Http\Controllers\Dashboard\AppLogController;
 use App\Http\Controllers\Dashboard\AppMcpController;
+use App\Http\Controllers\Dashboard\AppSettingsController;
 use App\Http\Controllers\Dashboard\AppStorageController;
 use App\Http\Controllers\Dashboard\AppTenantUserController;
 use App\Http\Controllers\Dashboard\ClientAppController;
@@ -45,6 +49,7 @@ Route::middleware(['auth', 'verified', 'not_suspended'])->group(function (): voi
         Route::get('apps', [ClientAppController::class, 'index'])->name('apps.index');
         Route::post('apps', [ClientAppController::class, 'store'])->name('apps.store');
         Route::get('apps/{app}', [ClientAppController::class, 'show'])->name('apps.show');
+        Route::get('apps/{app}/integrations', [ClientAppController::class, 'integrations'])->name('apps.integrations');
         Route::get('apps/{app}/database', [ClientAppController::class, 'database'])->name('apps.database');
         Route::get('apps/{app}/auth', [ClientAppController::class, 'auth'])->name('apps.auth');
         Route::get('apps/{app}/storage', [ClientAppController::class, 'storage'])->name('apps.storage');
@@ -55,6 +60,13 @@ Route::middleware(['auth', 'verified', 'not_suspended'])->group(function (): voi
         Route::get('apps/{app}/mcp', [ClientAppController::class, 'mcp'])->name('apps.mcp');
         Route::put('apps/{app}/mcp', [AppMcpController::class, 'update'])->name('apps.mcp.update');
         Route::get('apps/{app}/skills', [ClientAppController::class, 'skills'])->name('apps.skills');
+        Route::get('apps/{app}/logs', [ClientAppController::class, 'logs'])->name('apps.logs');
+        Route::get('apps/{app}/logs/export', [AppLogController::class, 'export'])->name('apps.logs.export');
+        Route::delete('apps/{app}/logs', [AppLogController::class, 'clear'])->name('apps.logs.clear');
+        Route::get('apps/{app}/settings/rate-limits', [ClientAppController::class, 'settingsRateLimits'])->name('apps.settings.rate_limits');
+        Route::put('apps/{app}/settings/rate-limits', [AppSettingsController::class, 'updateRateLimits'])->name('apps.settings.rate_limits.update');
+        Route::get('apps/{app}/settings/advanced', [ClientAppController::class, 'settingsAdvanced'])->name('apps.settings.advanced');
+        Route::put('apps/{app}/settings/advanced', [AppSettingsController::class, 'updateAdvanced'])->name('apps.settings.advanced.update');
         Route::post('apps/{app}/regenerate-keys', [ClientAppController::class, 'regenerateKeys'])->name('apps.regenerate_keys');
         Route::delete('apps/{app}', [ClientAppController::class, 'destroy'])->name('apps.destroy');
 
@@ -95,6 +107,16 @@ Route::middleware(['auth', 'verified', 'not_suspended'])->group(function (): voi
         Route::patch('users/{user}/quota', [AdminUserController::class, 'updateQuota'])->name('users.update_quota');
         Route::patch('users/{user}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('users.toggle_status');
         Route::delete('users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+
+        Route::get('settings/configs', [AdminSettingsController::class, 'configs'])->name('settings.configs');
+        Route::put('settings/configs', [AdminSettingsController::class, 'updateConfigs'])->name('settings.configs.update');
+        Route::get('settings/storage', [AdminSettingsController::class, 'storage'])->name('settings.storage');
+        Route::put('settings/storage', [AdminSettingsController::class, 'updateStorage'])->name('settings.storage.update');
+
+        Route::get('diagnostic/apps', [AdminDiagnosticController::class, 'apps'])->name('diagnostic.apps');
+        Route::get('diagnostic/logs', [AdminDiagnosticController::class, 'logs'])->name('diagnostic.logs');
+        Route::get('diagnostic/logs/download', [AdminDiagnosticController::class, 'downloadLogs'])->name('diagnostic.logs.download');
+        Route::delete('diagnostic/logs', [AdminDiagnosticController::class, 'clearLogs'])->name('diagnostic.logs.clear');
     });
 });
 

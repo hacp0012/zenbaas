@@ -189,7 +189,21 @@ test('clients can create an isolated application and cannot access another tenan
     $this->actingAs($owner)
         ->get(route('dashboard.apps.show', $app))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->component('client/apps/show'));
+        ->assertInertia(fn ($page) => $page
+            ->component('client/apps/show')
+            ->has('analytics.daily_activity', 7)
+            ->has('analytics.storage_breakdown', 5)
+            ->has('analytics.auth_breakdown')
+            ->has('analytics.functions_stats')
+        );
+
+    $this->actingAs($owner)
+        ->get(route('dashboard.apps.integrations', $app))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('client/apps/integrations')
+            ->where('app.public_key', $app->public_key)
+        );
 
     $this->actingAs($owner)
         ->get(route('dashboard.apps.database', $app))
@@ -218,6 +232,10 @@ test('clients can create an isolated application and cannot access another tenan
 
     $this->actingAs($otherClient)
         ->get(route('dashboard.apps.show', $app))
+        ->assertNotFound();
+
+    $this->actingAs($otherClient)
+        ->get(route('dashboard.apps.integrations', $app))
         ->assertNotFound();
 
     $this->actingAs($otherClient)

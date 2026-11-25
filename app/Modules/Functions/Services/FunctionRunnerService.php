@@ -3,10 +3,12 @@
 namespace App\Modules\Functions\Services;
 
 use App\Models\App;
+use App\Models\AppLog;
 use App\Modules\Auth\Models\TenantUser;
 use App\Modules\Database\Engines\NoSqlDatabaseEngine;
 use App\Modules\Functions\Models\AppFunction;
 use App\Modules\Storage\Services\StorageManagerService;
+use App\Services\AppLogService;
 use App\Services\TenantManagerService;
 use Closure;
 use InvalidArgumentException;
@@ -70,6 +72,7 @@ class FunctionRunnerService
         public TenantManagerService $tenantManager,
         public NoSqlDatabaseEngine $databaseEngine,
         public StorageManagerService $storageManager,
+        public AppLogService $appLogService,
     ) {}
 
     /**
@@ -131,10 +134,13 @@ class FunctionRunnerService
         ?TenantUser $tenantUser = null,
     ): array {
         if (! $function->is_active) {
+            $errorMessage = "La fonction [{$function->name}] est désactivée.";
+            $this->recordUnifiedLog($app, $function, 403, 0.0, null, $errorMessage);
+
             return [
                 'status' => 403,
                 'data' => null,
-                'error' => "La fonction [{$function->name}] est désactivée.",
+                'error' => $errorMessage,
                 'duration_ms' => 0.0,
             ];
         }
@@ -182,13 +188,17 @@ class FunctionRunnerService
                 $responseData = $rawResult['data'];
             }
 
+            $outputText = $stdout !== '' ? $stdout : json_encode($responseData, JSON_UNESCAPED_UNICODE);
+
             $this->appendLog($function, [
                 'timestamp' => now()->toIso8601String(),
                 'status' => $status,
                 'duration_ms' => $durationMs,
-                'output' => $stdout !== '' ? $stdout : json_encode($responseData, JSON_UNESCAPED_UNICODE),
+                'output' => $outputText,
                 'error' => null,
             ]);
+
+            $this->recordUnifiedLog($app, $function, $status, $durationMs, is_string($outputText) ? $outputText : null, null);
 
             return [
                 'status' => $status,
@@ -210,6 +220,8 @@ class FunctionRunnerService
                 'output' => null,
                 'error' => $e->getMessage(),
             ]);
+
+            $this->recordUnifiedLog($app, $function, 500, $durationMs, null, $e->getMessage());
 
             return [
                 'status' => 500,
@@ -262,5 +274,54 @@ class FunctionRunnerService
         $function->update([
             'logs' => array_slice($logs, 0, 50),
         ]);
+    }
+
+    /**
+     * Record a unified per-application function log when invoked outside the API v1 gateway (Dashboard IDE or MCP).
+     */
+    private function recordUnifiedLog(
+        App $app,
+        AppFunction $function,
+        int $status,
+        float $durationMs,
+        ?string $output,
+        ?string $error,
+    ): void {
+        $request = request();
+
+        // API v1 invocations are already recorded by RecordAppActivityLog middleware
+        if ($request->is('api/v1/functions/*')) {
+            return;
+        }
+
+        $trigger = $request->is('mcp') || $request->is('mcp/*') ? 'mcp' : 'dashboard';
+        $level = $status >= 500
+            ? AppLog::LEVEL_ERROR
+            : ($status >= 400 ? AppLog::LEVEL_WARNING : AppLog::LEVEL_INFO);
+
+        $context = [
+            'function_id' => $function->id,
+            'function_name' => $function->name,
+            'trigger' => $trigger,
+        ];
+
+        if ($output !== null && $output !== '') {
+            $context['output_preview'] = $output;
+        }
+
+        $this->appLogService->record(
+            app: $app,
+            source: AppLog::SOURCE_FUNCTIONS,
+            level: $level,
+            action: "function.invoke:{$function->name}",
+            method: 'EXEC',
+            path: "/functions/{$function->name}",
+            statusCode: $status,
+            durationMs: (int) round($durationMs),
+            apiKeyRole: $trigger,
+            ipAddress: $request->ip(),
+            message: $error ?? "Exécution de la fonction [{$function->name}] terminée (HTTP {$status}).",
+            context: $context,
+        );
     }
 }

@@ -67,6 +67,9 @@ class AuthenticateMcpApp
             );
         }
 
+        $request->attributes->set('current_app', $app);
+        $request->attributes->set('api_key_role', 'secret');
+
         if ($app->user !== null && $app->user->isSuspendedOrExpired()) {
             return $this->errorResponse(
                 $request,
@@ -84,9 +87,6 @@ class AuthenticateMcpApp
                 'Le serveur MCP est désactivé pour cette application. Activez-le dans le Dashboard Zenbase.',
             );
         }
-
-        $request->attributes->set('current_app', $app);
-        $request->attributes->set('api_key_role', 'secret');
 
         $this->tenantManager->connect($app);
         $this->mcpContext->setApp($app);

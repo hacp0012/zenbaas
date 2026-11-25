@@ -7,10 +7,15 @@ import {
     Cpu,
     Database,
     FolderOpen,
+    Gauge,
     Globe,
     KeyRound,
+    LayoutDashboard,
     Moon,
     Plug,
+    ScrollText,
+    Settings,
+    ShieldAlert,
     SlidersHorizontal,
     Sparkles,
     Sun,
@@ -87,10 +92,13 @@ export function ClientAppSidebar() {
         app !== undefined &&
         (currentUrl.startsWith(`${baseAppUrl}/mcp`) ||
             currentUrl.startsWith(`${baseAppUrl}/skills`));
+    const isSettingsSectionActive =
+        app !== undefined && currentUrl.startsWith(`${baseAppUrl}/settings`);
 
     const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
         functions: isFunctionsSectionActive,
         ai: isAiSectionActive,
+        settings: isSettingsSectionActive,
     });
 
     useEffect(() => {
@@ -107,6 +115,14 @@ export function ClientAppSidebar() {
         }
     }, [isAiSectionActive]);
 
+    useEffect(() => {
+        if (isSettingsSectionActive) {
+            setOpenMenus((prev) =>
+                prev.settings ? prev : { ...prev, settings: true },
+            );
+        }
+    }, [isSettingsSectionActive]);
+
     if (!app) {
         return null;
     }
@@ -120,12 +136,20 @@ export function ClientAppSidebar() {
     const appSections: SidebarSection[] = [
         {
             type: 'link',
-            title: "Vue d'ensemble & Clés API",
+            title: "Vue d'ensemble",
             href: baseAppUrl,
-            icon: KeyRound,
+            icon: LayoutDashboard,
             isActive:
                 currentUrl === baseAppUrl ||
                 currentUrl.startsWith(`${baseAppUrl}?`),
+            badge: null,
+        },
+        {
+            type: 'link',
+            title: 'Integrations',
+            href: `${baseAppUrl}/integrations`,
+            icon: KeyRound,
+            isActive: currentUrl.startsWith(`${baseAppUrl}/integrations`),
             badge: null,
         },
         {
@@ -213,6 +237,46 @@ export function ClientAppSidebar() {
                     href: `${baseAppUrl}/skills`,
                     icon: Sparkles,
                     isActive: currentUrl.startsWith(`${baseAppUrl}/skills`),
+                },
+            ],
+        },
+        {
+            type: 'link',
+            title: 'Logs',
+            href: `${baseAppUrl}/logs`,
+            icon: ScrollText,
+            isActive: currentUrl.startsWith(`${baseAppUrl}/logs`),
+            badge:
+                (app.error_logs_count ?? 0) > 0
+                    ? `${app.error_logs_count} err`
+                    : (app.logs_count ?? 0),
+        },
+        {
+            type: 'collapsible',
+            key: 'settings',
+            title: 'Settings',
+            icon: Settings,
+            isActive: isSettingsSectionActive,
+            subItems: [
+                {
+                    title: 'Rate Limits',
+                    href: `${baseAppUrl}/settings/rate-limits`,
+                    icon: Gauge,
+                    isActive: currentUrl.startsWith(
+                        `${baseAppUrl}/settings/rate-limits`,
+                    ),
+                    badge:
+                        app.rate_limits?.enabled === false
+                            ? 'Off'
+                            : `${app.rate_limits?.api_per_minute ?? 120}/m`,
+                },
+                {
+                    title: 'Advanced',
+                    href: `${baseAppUrl}/settings/advanced`,
+                    icon: ShieldAlert,
+                    isActive: currentUrl.startsWith(
+                        `${baseAppUrl}/settings/advanced`,
+                    ),
                 },
             ],
         },

@@ -20,20 +20,20 @@ export default function AuthCardLayout({
     description?: string;
 }>) {
     return (
-        <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
-            <div className="flex w-full max-w-md flex-col gap-6">
+        <div className="flex h-svh flex-col items-center justify-center gap-6 overflow-hidden bg-sidebar p-4 sm:p-6 md:p-10">
+            <div className="flex max-h-full w-full max-w-md flex-col gap-6">
                 <Link
                     href={home()}
-                    className="flex items-center gap-2.5 self-center font-bold"
+                    className="flex shrink-0 items-center gap-2.5 self-center font-bold"
                 >
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white">
                         <AppLogoIcon className="size-6 text-white" />
                     </div>
                     <span className="text-lg tracking-tight">Zenbase</span>
                 </Link>
 
-                <div className="flex flex-col gap-6">
-                    <Card className="rounded-xl">
+                <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-hidden">
+                    <Card className="max-h-full overflow-y-auto rounded-3xl border-border/80 bg-background shadow-none md:rounded-[1.75rem]">
                         <CardHeader className="px-10 pt-8 pb-0 text-center">
                             <CardTitle className="text-xl">{title}</CardTitle>
                             <CardDescription>{description}</CardDescription>

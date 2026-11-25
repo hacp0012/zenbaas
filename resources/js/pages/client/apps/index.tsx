@@ -1,4 +1,4 @@
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import {
     Activity,
     ArrowRight,
@@ -8,11 +8,9 @@ import {
     FolderOpen,
     KeyRound,
     Plus,
-    Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { ConfirmActionDialog } from '@/components/confirm-action-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,7 +45,6 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
     const hasReachedQuota = apps.length >= maxApps;
 
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
-    const [appToDelete, setAppToDelete] = useState<ZenbaseApp | null>(null);
 
     const form = useForm({
         name: '',
@@ -65,13 +62,6 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
         void navigator.clipboard.writeText(text);
         setCopiedKey(text);
         setTimeout(() => setCopiedKey(null), 2000);
-    }
-
-    function confirmDeleteApp() {
-        if (!appToDelete) {
-            return;
-        }
-        router.delete(`/dashboard/apps/${appToDelete.id}`);
     }
 
     return (
@@ -328,10 +318,10 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between gap-2 pt-2">
+                                    <div className="pt-2">
                                         <Button
                                             asChild
-                                            className="flex-1 bg-emerald-600 text-white hover:bg-emerald-500"
+                                            className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
                                         >
                                             <Link
                                                 href={`/dashboard/apps/${app.id}`}
@@ -340,15 +330,6 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                                                 <ArrowRight className="ml-1.5 size-4" />
                                             </Link>
                                         </Button>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => setAppToDelete(app)}
-                                            title="Supprimer l'application"
-                                        >
-                                            <Trash2 className="size-4 text-red-500" />
-                                        </Button>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -356,21 +337,6 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                     </div>
                 )}
             </div>
-
-            <ConfirmActionDialog
-                open={appToDelete !== null}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setAppToDelete(null);
-                    }
-                }}
-                variant="destructive"
-                title={`Supprimer l'application « ${appToDelete?.name ?? ''} » ?`}
-                description="Cette action détruira définitivement l'application et toutes ses ressources isolées."
-                warningNote={`Le fichier SQLite (app_${appToDelete?.id ?? ''}.sqlite), toutes ses collections NoSQL, ses utilisateurs inscrits, ses ${appToDelete?.files_count ?? 0} fichier(s) et ses ${appToDelete?.functions_count ?? 0} Web Function(s) PHP seront supprimés sans possibilité de récupération.`}
-                confirmLabel="Supprimer définitivement"
-                onConfirm={confirmDeleteApp}
-            />
         </>
     );
 }

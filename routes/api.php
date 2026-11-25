@@ -6,7 +6,7 @@ use App\Modules\Functions\Http\Controllers\FunctionApiController;
 use App\Modules\Storage\Http\Controllers\StorageApiController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->middleware(['zenbase.cors'])->group(function (): void {
+Route::prefix('v1')->middleware(['zenbase.log', 'zenbase.cors'])->group(function (): void {
     Route::options('{any}', fn () => response('', 204))->where('any', '.*');
 
     Route::middleware(['zenbase.apikey', 'throttle:zenbase-api'])->group(function (): void {
@@ -28,23 +28,29 @@ Route::prefix('v1')->middleware(['zenbase.cors'])->group(function (): void {
         Route::delete('collections/{collection}/records/{recordId}', [DatabaseApiController::class, 'destroyRecord'])->name('api.v1.records.destroy');
 
         // Module Auth (Email/Password & OTP)
-        Route::post('auth/signup', [AuthApiController::class, 'signUp'])->name('api.v1.auth.signup');
-        Route::post('auth/signin', [AuthApiController::class, 'signIn'])->name('api.v1.auth.signin');
-        Route::post('auth/otp/send', [AuthApiController::class, 'sendOtp'])->name('api.v1.auth.otp.send');
-        Route::post('auth/otp/verify', [AuthApiController::class, 'verifyOtp'])->name('api.v1.auth.otp.verify');
-        Route::get('auth/user', [AuthApiController::class, 'me'])->name('api.v1.auth.me');
-        Route::put('auth/password', [AuthApiController::class, 'updatePassword'])->name('api.v1.auth.password.update');
-        Route::post('auth/signout', [AuthApiController::class, 'signOut'])->name('api.v1.auth.signout');
+        Route::middleware(['throttle:zenbase-auth'])->group(function (): void {
+            Route::post('auth/signup', [AuthApiController::class, 'signUp'])->name('api.v1.auth.signup');
+            Route::post('auth/signin', [AuthApiController::class, 'signIn'])->name('api.v1.auth.signin');
+            Route::post('auth/otp/send', [AuthApiController::class, 'sendOtp'])->name('api.v1.auth.otp.send');
+            Route::post('auth/otp/verify', [AuthApiController::class, 'verifyOtp'])->name('api.v1.auth.otp.verify');
+            Route::get('auth/user', [AuthApiController::class, 'me'])->name('api.v1.auth.me');
+            Route::put('auth/password', [AuthApiController::class, 'updatePassword'])->name('api.v1.auth.password.update');
+            Route::post('auth/signout', [AuthApiController::class, 'signOut'])->name('api.v1.auth.signout');
+        });
 
         // Module Storage (Isolated File Storage)
-        Route::get('storage/files', [StorageApiController::class, 'index'])->name('api.v1.storage.index');
-        Route::get('storage/usage', [StorageApiController::class, 'usage'])->name('api.v1.storage.usage');
-        Route::post('storage/upload', [StorageApiController::class, 'upload'])->name('api.v1.storage.upload');
-        Route::delete('storage/files/{file}', [StorageApiController::class, 'destroy'])->name('api.v1.storage.destroy');
+        Route::middleware(['throttle:zenbase-storage'])->group(function (): void {
+            Route::get('storage/files', [StorageApiController::class, 'index'])->name('api.v1.storage.index');
+            Route::get('storage/usage', [StorageApiController::class, 'usage'])->name('api.v1.storage.usage');
+            Route::post('storage/upload', [StorageApiController::class, 'upload'])->name('api.v1.storage.upload');
+            Route::delete('storage/files/{file}', [StorageApiController::class, 'destroy'])->name('api.v1.storage.destroy');
+        });
 
         // Module Functions (Serverless PHP Web Functions)
-        Route::get('functions', [FunctionApiController::class, 'index'])->name('api.v1.functions.index');
-        Route::post('functions/{functionName}/invoke', [FunctionApiController::class, 'invoke'])->name('api.v1.functions.invoke');
-        Route::post('functions/{functionName}', [FunctionApiController::class, 'invoke'])->name('api.v1.functions.call');
+        Route::middleware(['throttle:zenbase-functions'])->group(function (): void {
+            Route::get('functions', [FunctionApiController::class, 'index'])->name('api.v1.functions.index');
+            Route::post('functions/{functionName}/invoke', [FunctionApiController::class, 'invoke'])->name('api.v1.functions.invoke');
+            Route::post('functions/{functionName}', [FunctionApiController::class, 'invoke'])->name('api.v1.functions.call');
+        });
     });
 });

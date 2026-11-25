@@ -35,7 +35,7 @@ export default function NotFoundPage({
         <>
             <Head title={`${status} — Page introuvable · Zenbase`} />
 
-            <div className="relative flex min-h-screen flex-col justify-between overflow-hidden bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+            <div className="relative flex h-svh flex-col justify-between overflow-hidden bg-sidebar text-foreground">
                 {/* Ambient decorative gradient */}
                 <div
                     aria-hidden="true"
@@ -79,8 +79,8 @@ export default function NotFoundPage({
                 </header>
 
                 {/* Main 404 Card */}
-                <main className="relative z-10 mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-6 py-12 text-center">
-                    <div className="w-full rounded-3xl border border-zinc-200/90 bg-white/95 p-8 shadow-xl backdrop-blur sm:p-12 dark:border-zinc-800 dark:bg-zinc-900/95">
+                <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col items-center justify-center overflow-hidden px-6 py-6 text-center">
+                    <div className="max-h-full w-full overflow-y-auto rounded-3xl border border-border/80 bg-background p-8 shadow-none sm:p-12 md:rounded-[1.75rem]">
                         <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
                             <Compass className="size-8" />
                         </div>

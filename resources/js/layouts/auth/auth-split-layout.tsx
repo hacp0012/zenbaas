@@ -9,8 +9,8 @@ export default function AuthSplitLayout({
     description,
 }: AuthLayoutProps) {
     return (
-        <div className="relative grid h-dvh flex-col items-center justify-center px-8 sm:px-0 lg:max-w-none lg:grid-cols-2 lg:px-0">
-            <div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
+        <div className="relative grid h-dvh flex-col items-stretch justify-center gap-3 overflow-hidden bg-sidebar p-2 sm:p-3 lg:max-w-none lg:grid-cols-2">
+            <div className="relative hidden h-full flex-col overflow-hidden rounded-[1.75rem] bg-muted p-10 text-white lg:flex dark:border dark:border-border/80">
                 <div className="absolute inset-0 bg-zinc-900" />
                 <Link
                     href={home()}
@@ -22,7 +22,7 @@ export default function AuthSplitLayout({
                     Zenbase
                 </Link>
             </div>
-            <div className="w-full lg:p-8">
+            <div className="flex h-full min-h-0 w-full items-center justify-center overflow-y-auto rounded-3xl border border-border/80 bg-background p-6 shadow-none sm:p-8 md:rounded-[1.75rem]">
                 <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
                     <Link
                         href={home()}

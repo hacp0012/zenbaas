@@ -4,6 +4,7 @@ namespace App\Modules\Storage\Services;
 
 use App\Models\App;
 use App\Models\AppFile;
+use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Modules\Storage\Exceptions\StorageQuotaExceededException;
 use Illuminate\Database\Eloquent\Collection;
@@ -20,6 +21,27 @@ class StorageManagerService
      */
     public function ensureStorageQuotaAvailable(App $app, int $incomingBytes): void
     {
+        $safeIncoming = max(0, $incomingBytes);
+
+        // 1. Check global Zenbase system storage limit (when configured)
+        $platformSettings = PlatformSetting::allSettings();
+        $globalMaxMb = $platformSettings['global_max_storage_mb'];
+
+        if ($globalMaxMb !== null) {
+            $globalMaxBytes = $globalMaxMb * 1024 * 1024;
+            $globalUsedBytes = (int) AppFile::query()->sum('size');
+
+            if (($globalUsedBytes + $safeIncoming) > $globalMaxBytes) {
+                $usedFormatted = $this->formatBytes($globalUsedBytes);
+                $incomingFormatted = $this->formatBytes($safeIncoming);
+
+                throw new StorageQuotaExceededException(
+                    "Capacité globale de stockage Zenbase atteinte ({$globalMaxMb} Mo max, {$usedFormatted} utilisés, +{$incomingFormatted} demandés). Contactez l'administrateur."
+                );
+            }
+        }
+
+        // 2. Check per-user storage quota
         $owner = $app->user;
 
         if (! $owner || $owner->is_admin) {
@@ -34,10 +56,10 @@ class StorageManagerService
 
         $usedBytes = $this->getUserUsedStorageBytes($owner);
 
-        if (($usedBytes + max(0, $incomingBytes)) > $maxBytes) {
+        if (($usedBytes + $safeIncoming) > $maxBytes) {
             $maxMb = (int) $owner->max_storage_mb;
             $usedFormatted = $this->formatBytes($usedBytes);
-            $incomingFormatted = $this->formatBytes(max(0, $incomingBytes));
+            $incomingFormatted = $this->formatBytes($safeIncoming);
 
             throw new StorageQuotaExceededException(
                 "Quota de stockage dépassé : votre compte est limité à {$maxMb} Mo ({$usedFormatted} déjà utilisés, +{$incomingFormatted} demandés). Supprimez des fichiers ou contactez l'administrateur."
