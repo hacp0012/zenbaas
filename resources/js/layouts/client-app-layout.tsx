@@ -13,12 +13,8 @@ export default function ClientAppLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps & { app?: ZenbaseApp }) {
-    const { app, flash } = usePage<{
+    const { app } = usePage<{
         app?: ZenbaseApp;
-        flash?: {
-            success?: string;
-            error?: string;
-        };
     }>().props;
 
     return (
@@ -57,17 +53,6 @@ export default function ClientAppLayout({
                                     </Link>
                                 </Button>
                             </div>
-                        </div>
-                    )}
-
-                    {flash?.success && (
-                        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-                            {flash.success}
-                        </div>
-                    )}
-                    {flash?.error && (
-                        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-                            {flash.error}
                         </div>
                     )}
 

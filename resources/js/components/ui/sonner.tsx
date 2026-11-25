@@ -1,23 +1,27 @@
-import { useFlashToast } from '@/hooks/use-flash-toast';
-import { useAppearance } from '@/hooks/use-appearance';
+import type { CSSProperties } from 'react';
 import { Toaster as Sonner, type ToasterProps } from 'sonner';
+import { useAppearance } from '@/hooks/use-appearance';
+import { useFlashToast } from '@/hooks/use-flash-toast';
 
 function Toaster({ ...props }: ToasterProps) {
-    const { appearance } = useAppearance();
+    const { resolvedAppearance } = useAppearance();
 
     useFlashToast();
 
     return (
         <Sonner
-            theme={appearance}
+            theme={resolvedAppearance}
             className="toaster group"
-            position="bottom-right"
+            position="top-right"
+            richColors
+            closeButton
+            duration={4500}
             style={
                 {
                     '--normal-bg': 'var(--popover)',
                     '--normal-text': 'var(--popover-foreground)',
                     '--normal-border': 'var(--border)',
-                } as React.CSSProperties
+                } as CSSProperties
             }
             {...props}
         />

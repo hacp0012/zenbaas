@@ -3,12 +3,14 @@ import {
     Ban,
     Calendar,
     CheckCircle2,
+    Pencil,
     Search,
     Trash2,
     UserPlus,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { update as updateTenantUser } from '@/actions/App/Http/Controllers/Dashboard/AppTenantUserController';
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +21,14 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { dashboard } from '@/routes';
@@ -36,13 +46,40 @@ export default function ClientAppAuth({
     const [searchQuery, setSearchQuery] = useState(userSearch || '');
     const [resettingUserId, setResettingUserId] = useState<string | null>(null);
     const [resetPasswordValue, setResetPasswordValue] = useState('');
+    const [userToEdit, setUserToEdit] = useState<ZenbaseTenantUser | null>(
+        null,
+    );
     const [userToBlock, setUserToBlock] = useState<ZenbaseTenantUser | null>(
         null,
     );
     const [userToDelete, setUserToDelete] = useState<ZenbaseTenantUser | null>(
         null,
     );
-    const newUserForm = useForm({ email: '', password: '' });
+    const newUserForm = useForm({ name: '', email: '', password: '' });
+    const editUserForm = useForm({ name: '', email: '' });
+
+    function openEditUserModal(user: ZenbaseTenantUser) {
+        setUserToEdit(user);
+        editUserForm.clearErrors();
+        editUserForm.setData({
+            name: user.name ?? '',
+            email: user.email,
+        });
+    }
+
+    function handleUpdateTenantUser(e: FormEvent) {
+        e.preventDefault();
+        if (!userToEdit) {
+            return;
+        }
+        editUserForm.submit(updateTenantUser([app.id, userToEdit.id]), {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setUserToEdit(null);
+            },
+        });
+    }
 
     function handleCreateTenantUser(e: FormEvent) {
         e.preventDefault();
@@ -92,7 +129,9 @@ export default function ClientAppAuth({
                         </CardTitle>
                         <CardDescription>
                             Crée un utilisateur directement dans la table{' '}
-                            <code className="font-mono text-xs">auth_users</code>{' '}
+                            <code className="font-mono text-xs">
+                                auth_users
+                            </code>{' '}
                             de la base SQLite de l&apos;application.
                         </CardDescription>
                     </CardHeader>
@@ -101,6 +140,27 @@ export default function ClientAppAuth({
                             onSubmit={handleCreateTenantUser}
                             className="space-y-4"
                         >
+                            <div className="space-y-1.5">
+                                <Label htmlFor="tu-name">
+                                    Nom complet (optionnel)
+                                </Label>
+                                <Input
+                                    id="tu-name"
+                                    value={newUserForm.data.name}
+                                    onChange={(e) =>
+                                        newUserForm.setData(
+                                            'name',
+                                            e.target.value,
+                                        )
+                                    }
+                                    placeholder="Ex: Alice Martin"
+                                />
+                                {newUserForm.errors.name && (
+                                    <p className="text-xs text-red-500">
+                                        {newUserForm.errors.name}
+                                    </p>
+                                )}
+                            </div>
                             <div className="space-y-1.5">
                                 <Label htmlFor="tu-email">Adresse e-mail</Label>
                                 <Input
@@ -176,7 +236,7 @@ export default function ClientAppAuth({
                                     onChange={(e) =>
                                         setSearchQuery(e.target.value)
                                     }
-                                    placeholder="Rechercher par e-mail..."
+                                    placeholder="Rechercher par nom ou e-mail..."
                                     className="h-9 w-56 text-xs"
                                 />
                                 <Button
@@ -200,7 +260,7 @@ export default function ClientAppAuth({
                                     <thead>
                                         <tr className="border-b text-xs text-muted-foreground uppercase">
                                             <th className="pb-2 font-medium">
-                                                E-mail
+                                                Utilisateur
                                             </th>
                                             <th className="pb-2 font-medium">
                                                 Méthode
@@ -220,10 +280,21 @@ export default function ClientAppAuth({
                                         {tenantUsers.map((tu) => (
                                             <tr key={tu.id}>
                                                 <td className="py-3">
-                                                    <div className="font-medium">
+                                                    {tu.name && (
+                                                        <div className="font-semibold">
+                                                            {tu.name}
+                                                        </div>
+                                                    )}
+                                                    <div
+                                                        className={
+                                                            tu.name
+                                                                ? 'text-xs text-muted-foreground'
+                                                                : 'font-medium'
+                                                        }
+                                                    >
                                                         {tu.email}
                                                     </div>
-                                                    <div className="font-mono text-[11px] text-muted-foreground">
+                                                    <div className="font-mono text-[11px] text-muted-foreground/80">
                                                         {tu.id}
                                                     </div>
                                                 </td>
@@ -270,6 +341,20 @@ export default function ClientAppAuth({
                                                 </td>
                                                 <td className="py-3 text-right">
                                                     <div className="flex flex-wrap justify-end gap-1.5">
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                openEditUserModal(
+                                                                    tu,
+                                                                )
+                                                            }
+                                                            title="Modifier le nom et l'adresse e-mail"
+                                                        >
+                                                            <Pencil className="mr-1 size-3.5 text-sky-600 dark:text-sky-400" />
+                                                            Modifier
+                                                        </Button>
                                                         {resettingUserId ===
                                                         tu.id ? (
                                                             <div className="flex items-center gap-1">
@@ -375,6 +460,96 @@ export default function ClientAppAuth({
                 </Card>
             </div>
 
+            <Dialog
+                open={userToEdit !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setUserToEdit(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Pencil className="size-4 text-emerald-600" />
+                            Modifier l&apos;utilisateur
+                        </DialogTitle>
+                        <DialogDescription>
+                            Modifiez le nom et l&apos;adresse e-mail de cet
+                            utilisateur dans la base{' '}
+                            <code className="font-mono text-xs">
+                                auth_users
+                            </code>{' '}
+                            de l&apos;application.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={handleUpdateTenantUser}
+                        className="space-y-4"
+                    >
+                        <div className="space-y-1.5">
+                            <Label htmlFor="edit-tu-name">
+                                Nom complet (optionnel)
+                            </Label>
+                            <Input
+                                id="edit-tu-name"
+                                value={editUserForm.data.name}
+                                onChange={(e) =>
+                                    editUserForm.setData('name', e.target.value)
+                                }
+                                placeholder="Ex: Alice Martin"
+                            />
+                            {editUserForm.errors.name && (
+                                <p className="text-xs text-red-500">
+                                    {editUserForm.errors.name}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="edit-tu-email">
+                                Adresse e-mail
+                            </Label>
+                            <Input
+                                id="edit-tu-email"
+                                type="email"
+                                value={editUserForm.data.email}
+                                onChange={(e) =>
+                                    editUserForm.setData(
+                                        'email',
+                                        e.target.value,
+                                    )
+                                }
+                                placeholder="utilisateur@app.com"
+                                required
+                            />
+                            {editUserForm.errors.email && (
+                                <p className="text-xs text-red-500">
+                                    {editUserForm.errors.email}
+                                </p>
+                            )}
+                        </div>
+                        <DialogFooter className="gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setUserToEdit(null)}
+                            >
+                                Annuler
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="bg-emerald-600 text-white hover:bg-emerald-500"
+                                disabled={editUserForm.processing}
+                            >
+                                {editUserForm.processing
+                                    ? 'Enregistrement...'
+                                    : 'Enregistrer'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
             <ConfirmActionDialog
                 open={userToBlock !== null}
                 onOpenChange={(open) => {
@@ -391,7 +566,7 @@ export default function ClientAppAuth({
                 description={
                     userToBlock?.is_blocked
                         ? "Cet utilisateur pourra à nouveau s'authentifier via le SDK sur cette application."
-                        : "Cet utilisateur ne pourra plus se connecter ni utiliser ses jetons de session sur cette application."
+                        : 'Cet utilisateur ne pourra plus se connecter ni utiliser ses jetons de session sur cette application.'
                 }
                 confirmLabel={
                     userToBlock?.is_blocked

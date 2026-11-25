@@ -10,6 +10,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
+ * @property string|null $name
  * @property string $email
  * @property string|null $password_hash
  * @property string $auth_method
@@ -20,7 +21,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['email', 'password_hash', 'auth_method', 'is_blocked', 'otp_code', 'otp_expires_at', 'access_token'])]
+#[Fillable(['name', 'email', 'password_hash', 'auth_method', 'is_blocked', 'otp_code', 'otp_expires_at', 'access_token'])]
 #[Hidden(['password_hash', 'otp_code', 'access_token'])]
 class TenantUser extends Model
 {

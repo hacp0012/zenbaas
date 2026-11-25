@@ -39,9 +39,8 @@ function formatBytes(bytes: number): string {
 }
 
 export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
-    const { auth, flash } = usePage<{
+    const { auth } = usePage<{
         auth: Auth;
-        flash?: { success?: string; error?: string };
     }>().props;
     const isAdmin = Boolean(auth?.user?.is_admin);
     const maxApps = Number(auth?.user?.max_apps ?? 1);
@@ -95,11 +94,22 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                     </div>
                     {!isAdmin && (
                         <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="outline" className="px-3 py-1 font-mono text-xs">
-                                Apps : {apps.length} / {auth?.user?.max_apps ?? 1}
+                            <Badge
+                                variant="outline"
+                                className="px-3 py-1 font-mono text-xs"
+                            >
+                                Apps : {apps.length} /{' '}
+                                {auth?.user?.max_apps ?? 1}
                             </Badge>
-                            <Badge variant="outline" className="px-3 py-1 font-mono text-xs">
-                                Stockage : {formatBytes(Number(auth?.user?.used_storage_bytes ?? 0))} /{' '}
+                            <Badge
+                                variant="outline"
+                                className="px-3 py-1 font-mono text-xs"
+                            >
+                                Stockage :{' '}
+                                {formatBytes(
+                                    Number(auth?.user?.used_storage_bytes ?? 0),
+                                )}{' '}
+                                /{' '}
                                 {auth?.user?.max_storage_mb != null
                                     ? `${auth.user.max_storage_mb} Mo`
                                     : 'Illimité'}
@@ -110,23 +120,14 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                             >
                                 Expiration :{' '}
                                 {auth?.user?.expires_at
-                                    ? new Date(auth.user.expires_at).toLocaleDateString('fr-FR')
+                                    ? new Date(
+                                          auth.user.expires_at,
+                                      ).toLocaleDateString('fr-FR')
                                     : 'Infini'}
                             </Badge>
                         </div>
                     )}
                 </div>
-
-                {flash?.success && (
-                    <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-                        {flash.success}
-                    </div>
-                )}
-                {flash?.error && (
-                    <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-                        {flash.error}
-                    </div>
-                )}
 
                 {!isAdmin && (
                     <Card className="border-emerald-500/30">
@@ -151,7 +152,11 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                         <CardContent>
                             {hasReachedQuota && (
                                 <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-800 dark:text-amber-200">
-                                    Vous avez atteint votre limite maximale d&apos;applications autorisées ({apps.length}/{maxApps}). Contactez l&apos;administrateur pour augmenter votre quota.
+                                    Vous avez atteint votre limite maximale
+                                    d&apos;applications autorisées (
+                                    {apps.length}/{maxApps}). Contactez
+                                    l&apos;administrateur pour augmenter votre
+                                    quota.
                                 </div>
                             )}
                             <form
@@ -199,7 +204,9 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                                     <Button
                                         type="submit"
                                         className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
-                                        disabled={form.processing || hasReachedQuota}
+                                        disabled={
+                                            form.processing || hasReachedQuota
+                                        }
                                     >
                                         <Plus className="mr-1.5 size-4" />
                                         {form.processing

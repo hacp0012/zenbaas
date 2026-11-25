@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -53,11 +54,28 @@ class HandleInertiaRequests extends Middleware
                     'apps_count' => $user->is_admin ? 0 : $user->apps()->count(),
                 ] : null,
             ],
-            'flash' => [
-                'success' => fn () => $request->session()->get('success'),
-                'error' => fn () => $request->session()->get('error'),
-                'functionResult' => fn () => $request->session()->get('functionResult'),
-            ],
+            'flash' => function () use ($request): array {
+                $success = $request->session()->get('success');
+                $error = $request->session()->get('error');
+                $warning = $request->session()->get('warning');
+                $info = $request->session()->get('info');
+                $status = $request->session()->get('status');
+
+                $hasToast = is_string($success) && $success !== ''
+                    || is_string($error) && $error !== ''
+                    || is_string($warning) && $warning !== ''
+                    || is_string($info) && $info !== '';
+
+                return [
+                    'id' => $hasToast ? (string) Str::uuid() : null,
+                    'success' => $success,
+                    'error' => $error,
+                    'warning' => $warning,
+                    'info' => $info,
+                    'status' => $status,
+                    'functionResult' => $request->session()->get('functionResult'),
+                ];
+            },
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

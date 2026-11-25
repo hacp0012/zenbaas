@@ -180,6 +180,7 @@ export type ZenbaseCollectionInfo = {
 
 export type ZenbaseTenantUser = {
     id: string;
+    name?: string | null;
     email: string;
     auth_method: string;
     is_blocked: boolean;

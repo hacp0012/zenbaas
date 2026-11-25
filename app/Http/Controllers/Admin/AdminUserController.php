@@ -93,6 +93,31 @@ class AdminUserController extends Controller
     }
 
     /**
+     * Update a user's basic profile information (name and email).
+     */
+    public function update(Request $request, User $user): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+        ]);
+
+        $user->update([
+            'name' => trim($validated['name']),
+            'email' => trim($validated['email']),
+        ]);
+
+        return back()->with('success', "Informations de « {$user->name} » mises à jour avec succès.");
+    }
+
+    /**
      * Update a client's application quota (`max_apps`), storage limit (`max_storage_mb`), and expiration date (`expires_at`).
      */
     public function updateQuota(Request $request, User $user): RedirectResponse

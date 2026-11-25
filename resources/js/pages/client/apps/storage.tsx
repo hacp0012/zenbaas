@@ -1,5 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import {
+    Calendar,
+    Check,
     CheckSquare,
     ChevronLeft,
     ChevronRight,
@@ -15,6 +17,7 @@ import {
     FolderOpen,
     HardDrive,
     Image as ImageIcon,
+    Info,
     LayoutGrid,
     List,
     Music,
@@ -27,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { toast } from 'sonner';
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog';
 import { PrismCodeBlock } from '@/components/prism-code-block';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +45,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import ClientAppLayout from '@/layouts/client-app-layout';
 import type { ZenbaseApp, ZenbaseFile } from '@/types';
 
 type PaginatedFiles = {
@@ -85,6 +88,55 @@ function formatBytes(bytes: number): string {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
+
+function formatDateTime(iso: string | null | undefined): string {
+    if (!iso) {
+        return '—';
+    }
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) {
+        return '—';
+    }
+
+    return d.toLocaleString('fr-FR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+    });
+}
+
+function formatDateLong(iso: string | null | undefined): string {
+    if (!iso) {
+        return '—';
+    }
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) {
+        return '—';
+    }
+
+    return d.toLocaleString('fr-FR', {
+        dateStyle: 'full',
+        timeStyle: 'medium',
+    });
+}
+
+function getFileCategoryLabel(
+    category: 'image' | 'pdf' | 'video' | 'audio' | 'code' | 'other',
+): string {
+    switch (category) {
+        case 'image':
+            return 'Image';
+        case 'pdf':
+            return 'Document PDF';
+        case 'video':
+            return 'Vidéo';
+        case 'audio':
+            return 'Audio';
+        case 'code':
+            return 'Code / Texte';
+        default:
+            return 'Fichier binaire';
+    }
 }
 
 function getFileCategory(
@@ -187,9 +239,7 @@ export default function ClientAppStorage({
     const [activeFolder, setActiveFolder] = useState(
         storageFilters?.folder ?? 'all',
     );
-    const [activeMime, setActiveMime] = useState(
-        storageFilters?.mime ?? 'all',
-    );
+    const [activeMime, setActiveMime] = useState(storageFilters?.mime ?? 'all');
     const [sortBy, setSortBy] = useState(storageFilters?.sort ?? 'created_at');
     const [direction, setDirection] = useState<'asc' | 'desc'>(
         storageFilters?.direction ?? 'desc',
@@ -212,14 +262,15 @@ export default function ClientAppStorage({
         folder: activeFolder !== 'all' ? activeFolder : '/uploads',
     });
 
-    // Rich File Preview Modal
+    // Rich File Preview & File Details Modals
     const [previewFile, setPreviewFile] = useState<ZenbaseFile | null>(null);
+    const [detailsFile, setDetailsFile] = useState<ZenbaseFile | null>(null);
     const [previewTextContent, setPreviewTextContent] = useState<string | null>(
         null,
     );
     const [previewLoading, setPreviewLoading] = useState(false);
     const [imageZoomed, setImageZoomed] = useState(false);
-    const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+    const [copiedValue, setCopiedValue] = useState<string | null>(null);
 
     useEffect(() => {
         if (!previewFile) {
@@ -275,7 +326,9 @@ export default function ClientAppStorage({
 
     function toggleSelectFile(id: string) {
         setSelectedIds((prev) =>
-            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+            prev.includes(id)
+                ? prev.filter((item) => item !== id)
+                : [...prev, id],
         );
     }
 
@@ -312,10 +365,16 @@ export default function ClientAppStorage({
         });
     }
 
-    function copyUrl(url: string) {
-        void navigator.clipboard.writeText(url);
-        setCopiedUrl(url);
-        setTimeout(() => setCopiedUrl(null), 2000);
+    function copyToClipboard(
+        value: string,
+        label = 'URL copiée dans le presse-papiers',
+    ) {
+        void navigator.clipboard.writeText(value);
+        setCopiedValue(value);
+        toast.success(label);
+        setTimeout(() => {
+            setCopiedValue((prev) => (prev === value ? null : prev));
+        }, 2000);
     }
 
     function renderFileIcon(file: ZenbaseFile) {
@@ -364,7 +423,8 @@ export default function ClientAppStorage({
                             <p className="text-xs text-muted-foreground">
                                 Répertoire isolé{' '}
                                 <code className="rounded bg-muted px-1 font-mono">
-                                    storage/app/public/tenants/{app.id.slice(0, 8)}…/
+                                    storage/app/public/tenants/
+                                    {app.id.slice(0, 8)}…/
                                 </code>{' '}
                                 · Prévisualisation multimédia & code, filtres
                                 MIME et pagination haute capacité.
@@ -569,7 +629,9 @@ export default function ClientAppStorage({
                                     aria-label="Filtrer par type de fichier"
                                     className="h-8 rounded-md border bg-background px-2 text-xs"
                                 >
-                                    <option value="all">Tous les formats</option>
+                                    <option value="all">
+                                        Tous les formats
+                                    </option>
                                     <option value="image">Images</option>
                                     <option value="pdf">Documents PDF</option>
                                     <option value="code">
@@ -712,6 +774,9 @@ export default function ClientAppStorage({
                                                 <th className="pb-2.5">
                                                     Taille
                                                 </th>
+                                                <th className="pb-2.5">
+                                                    Créé le
+                                                </th>
                                                 <th className="pb-2.5 text-right">
                                                     Outils & Prévisualisation
                                                 </th>
@@ -785,6 +850,19 @@ export default function ClientAppStorage({
                                                                 file.size,
                                                             )}
                                                         </td>
+                                                        <td
+                                                            className="py-2.5 font-mono whitespace-nowrap text-muted-foreground"
+                                                            title={formatDateLong(
+                                                                file.created_at,
+                                                            )}
+                                                        >
+                                                            <span className="inline-flex items-center gap-1">
+                                                                <Calendar className="size-3 shrink-0 text-muted-foreground/70" />
+                                                                {formatDateTime(
+                                                                    file.created_at,
+                                                                )}
+                                                            </span>
+                                                        </td>
                                                         <td className="py-2.5 text-right">
                                                             <div className="inline-flex items-center gap-1">
                                                                 <Button
@@ -807,18 +885,31 @@ export default function ClientAppStorage({
                                                                     variant="ghost"
                                                                     className="h-7 px-2 text-xs"
                                                                     onClick={() =>
-                                                                        copyUrl(
+                                                                        setDetailsFile(
+                                                                            file,
+                                                                        )
+                                                                    }
+                                                                    title="Détails du fichier"
+                                                                >
+                                                                    <Info className="size-3.5 text-sky-600 dark:text-sky-400" />
+                                                                </Button>
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="h-7 px-2 text-xs"
+                                                                    onClick={() =>
+                                                                        copyToClipboard(
                                                                             file.url,
                                                                         )
                                                                     }
                                                                     title="Copier l'URL publique"
                                                                 >
-                                                                    <Copy className="size-3.5" />
-                                                                    {copiedUrl ===
-                                                                        file.url && (
-                                                                        <span className="ml-1 text-[10px] text-emerald-600">
-                                                                            Copié
-                                                                        </span>
+                                                                    {copiedValue ===
+                                                                    file.url ? (
+                                                                        <Check className="size-3.5 text-emerald-600" />
+                                                                    ) : (
+                                                                        <Copy className="size-3.5" />
                                                                     )}
                                                                 </Button>
                                                                 <a
@@ -903,21 +994,50 @@ export default function ClientAppStorage({
                                                             )}
                                                         </span>
                                                     </div>
-                                                    <div className="mt-2 flex items-center justify-between border-t pt-2">
-                                                        <Button
-                                                            type="button"
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="h-6 px-2 text-[11px]"
-                                                            onClick={() =>
-                                                                setPreviewFile(
-                                                                    file,
-                                                                )
-                                                            }
-                                                        >
-                                                            <Eye className="mr-1 size-3" />
-                                                            Aperçu
-                                                        </Button>
+                                                    <div
+                                                        className="mt-1 flex items-center gap-1 font-mono text-[10px] text-muted-foreground/80"
+                                                        title={formatDateLong(
+                                                            file.created_at,
+                                                        )}
+                                                    >
+                                                        <Calendar className="size-3 shrink-0" />
+                                                        <span className="truncate">
+                                                            {formatDateTime(
+                                                                file.created_at,
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                    <div className="mt-2 flex items-center justify-between gap-1 border-t pt-2">
+                                                        <div className="flex items-center gap-1">
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-6 px-2 text-[11px]"
+                                                                onClick={() =>
+                                                                    setPreviewFile(
+                                                                        file,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Eye className="mr-1 size-3" />
+                                                                Aperçu
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="h-6 px-1.5 text-[11px]"
+                                                                onClick={() =>
+                                                                    setDetailsFile(
+                                                                        file,
+                                                                    )
+                                                                }
+                                                                title="Détails du fichier"
+                                                            >
+                                                                <Info className="size-3.5 text-sky-600 dark:text-sky-400" />
+                                                            </Button>
+                                                        </div>
                                                         <button
                                                             type="button"
                                                             onClick={() =>
@@ -926,6 +1046,7 @@ export default function ClientAppStorage({
                                                                 )
                                                             }
                                                             className="text-red-500 hover:opacity-80"
+                                                            title="Supprimer"
                                                         >
                                                             <Trash2 className="size-3.5" />
                                                         </button>
@@ -1100,7 +1221,8 @@ export default function ClientAppStorage({
                                 <DialogDescription className="truncate font-mono text-xs">
                                     {previewFile.folder} ·{' '}
                                     {previewFile.mime_type} ·{' '}
-                                    {formatBytes(previewFile.size)}
+                                    {formatBytes(previewFile.size)} · Créé le{' '}
+                                    {formatDateTime(previewFile.created_at)}
                                 </DialogDescription>
                             </DialogHeader>
 
@@ -1243,11 +1365,11 @@ export default function ClientAppStorage({
                                             variant="outline"
                                             className="h-7 text-xs"
                                             onClick={() =>
-                                                copyUrl(previewFile.url)
+                                                copyToClipboard(previewFile.url)
                                             }
                                         >
                                             <Copy className="mr-1 size-3" />
-                                            {copiedUrl === previewFile.url
+                                            {copiedValue === previewFile.url
                                                 ? 'Copié !'
                                                 : 'Copier URL'}
                                         </Button>
@@ -1285,6 +1407,221 @@ export default function ClientAppStorage({
                                 </div>
                             </div>
                         </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal : Détails & Métadonnées complètes du fichier */}
+            <Dialog
+                open={detailsFile !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDetailsFile(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    {detailsFile && (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2 text-base">
+                                    <Info className="size-4 shrink-0 text-sky-600 dark:text-sky-400" />
+                                    <span className="truncate">
+                                        Détails du fichier
+                                    </span>
+                                </DialogTitle>
+                                <DialogDescription className="truncate font-mono text-xs">
+                                    {detailsFile.original_name}
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="space-y-3 text-xs">
+                                <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/20 p-3">
+                                    <div>
+                                        <p className="text-[11px] font-medium text-muted-foreground">
+                                            Catégorie
+                                        </p>
+                                        <p className="mt-0.5 flex items-center gap-1.5 font-medium">
+                                            {renderFileIcon(detailsFile)}
+                                            {getFileCategoryLabel(
+                                                getFileCategory(detailsFile),
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] font-medium text-muted-foreground">
+                                            Type MIME
+                                        </p>
+                                        <p className="mt-0.5 font-mono">
+                                            {detailsFile.mime_type}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] font-medium text-muted-foreground">
+                                            Taille
+                                        </p>
+                                        <p className="mt-0.5 font-mono">
+                                            {formatBytes(detailsFile.size)}{' '}
+                                            <span className="text-muted-foreground">
+                                                (
+                                                {detailsFile.size.toLocaleString(
+                                                    'fr-FR',
+                                                )}{' '}
+                                                octets)
+                                            </span>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] font-medium text-muted-foreground">
+                                            Dossier logique
+                                        </p>
+                                        <p className="mt-0.5 font-mono">
+                                            {detailsFile.folder}
+                                        </p>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <p className="text-[11px] font-medium text-muted-foreground">
+                                            Date de création
+                                        </p>
+                                        <p className="mt-0.5 flex items-center gap-1.5 font-medium">
+                                            <Calendar className="size-3.5 text-emerald-600" />
+                                            <span>
+                                                {formatDateLong(
+                                                    detailsFile.created_at,
+                                                )}
+                                            </span>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] font-medium text-muted-foreground">
+                                            Disque
+                                        </p>
+                                        <p className="mt-0.5 font-mono">
+                                            {detailsFile.disk}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="rounded-lg border p-2.5">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-[11px] font-medium text-muted-foreground">
+                                                Identifiant (UUID)
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-6 px-2 text-[11px]"
+                                                onClick={() =>
+                                                    copyToClipboard(
+                                                        detailsFile.id,
+                                                        'UUID du fichier copié',
+                                                    )
+                                                }
+                                            >
+                                                <Copy className="mr-1 size-3" />
+                                                Copier
+                                            </Button>
+                                        </div>
+                                        <p className="mt-1 font-mono text-[11px] break-all text-foreground">
+                                            {detailsFile.id}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-lg border p-2.5">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-[11px] font-medium text-muted-foreground">
+                                                Chemin interne
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-6 px-2 text-[11px]"
+                                                onClick={() =>
+                                                    copyToClipboard(
+                                                        detailsFile.path,
+                                                        'Chemin du fichier copié',
+                                                    )
+                                                }
+                                            >
+                                                <Copy className="mr-1 size-3" />
+                                                Copier
+                                            </Button>
+                                        </div>
+                                        <p className="mt-1 font-mono text-[11px] break-all text-foreground">
+                                            {detailsFile.path}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-lg border p-2.5">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-[11px] font-medium text-muted-foreground">
+                                                URL publique
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-6 px-2 text-[11px]"
+                                                onClick={() =>
+                                                    copyToClipboard(
+                                                        detailsFile.url,
+                                                        'URL publique copiée',
+                                                    )
+                                                }
+                                            >
+                                                <Copy className="mr-1 size-3" />
+                                                Copier
+                                            </Button>
+                                        </div>
+                                        <p className="mt-1 font-mono text-[11px] break-all text-muted-foreground">
+                                            {detailsFile.url}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <DialogFooter className="flex flex-wrap gap-2">
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                        const target = detailsFile;
+                                        setDetailsFile(null);
+                                        setPreviewFile(target);
+                                    }}
+                                >
+                                    <Eye className="mr-1.5 size-3.5 text-emerald-600" />
+                                    Aperçu
+                                </Button>
+                                <Button asChild size="sm" variant="outline">
+                                    <a
+                                        href={detailsFile.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        <ExternalLink className="mr-1.5 size-3.5" />
+                                        Ouvrir
+                                    </a>
+                                </Button>
+                                <Button
+                                    asChild
+                                    size="sm"
+                                    className="bg-emerald-600 text-white hover:bg-emerald-500"
+                                >
+                                    <a
+                                        href={`${detailsFile.url}?download=1`}
+                                        download={detailsFile.original_name}
+                                    >
+                                        <Download className="mr-1.5 size-3.5" />
+                                        Télécharger
+                                    </a>
+                                </Button>
+                            </DialogFooter>
+                        </>
                     )}
                 </DialogContent>
             </Dialog>

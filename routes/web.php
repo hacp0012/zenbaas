@@ -66,6 +66,7 @@ Route::middleware(['auth', 'verified', 'not_suspended'])->group(function (): voi
         Route::delete('apps/{app}/collections/{collection}/records/{recordId}', [AppDatabaseController::class, 'destroyRecord'])->name('apps.records.destroy');
 
         Route::post('apps/{app}/users', [AppTenantUserController::class, 'store'])->name('apps.users.store');
+        Route::put('apps/{app}/users/{tenantUserId}', [AppTenantUserController::class, 'update'])->name('apps.users.update');
         Route::patch('apps/{app}/users/{tenantUserId}/toggle-block', [AppTenantUserController::class, 'toggleBlock'])->name('apps.users.toggle_block');
         Route::patch('apps/{app}/users/{tenantUserId}/reset-password', [AppTenantUserController::class, 'resetPassword'])->name('apps.users.reset_password');
         Route::delete('apps/{app}/users/{tenantUserId}', [AppTenantUserController::class, 'destroy'])->name('apps.users.destroy');
@@ -90,6 +91,7 @@ Route::middleware(['auth', 'verified', 'not_suspended'])->group(function (): voi
         Route::get('dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
         Route::post('users', [AdminUserController::class, 'store'])->name('users.store');
+        Route::put('users/{user}', [AdminUserController::class, 'update'])->name('users.update');
         Route::patch('users/{user}/quota', [AdminUserController::class, 'updateQuota'])->name('users.update_quota');
         Route::patch('users/{user}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('users.toggle_status');
         Route::delete('users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');

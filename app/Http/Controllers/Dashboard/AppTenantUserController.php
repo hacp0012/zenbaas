@@ -30,6 +30,7 @@ class AppTenantUserController extends Controller
         $this->ensureAppOwnership($request, $app);
 
         $validated = $request->validate([
+            'name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:6', 'max:255'],
         ]);
@@ -37,12 +38,57 @@ class AppTenantUserController extends Controller
         $this->tenantManager->connect($app);
 
         try {
-            $this->authManager->signUp($validated['email'], $validated['password']);
+            $this->authManager->signUp(
+                $validated['email'],
+                $validated['password'],
+                $validated['name'] ?? null,
+            );
 
             return back()->with('success', 'Utilisateur ajouté dans la base de l\'application.');
         } catch (RuntimeException $e) {
             return back()->withErrors(['email' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Update an application user's profile information (name and email).
+     */
+    public function update(Request $request, App $app, string $tenantUserId): RedirectResponse
+    {
+        $this->ensureAppOwnership($request, $app);
+
+        $validated = $request->validate([
+            'name' => ['nullable', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255'],
+        ]);
+
+        $this->tenantManager->connect($app);
+
+        $tenantUser = TenantUser::query()->findOrFail($tenantUserId);
+        $normalizedEmail = mb_strtolower(trim($validated['email']));
+        $normalizedName = isset($validated['name']) && trim($validated['name']) !== ''
+            ? trim($validated['name'])
+            : null;
+
+        $emailExists = TenantUser::query()
+            ->where('email', $normalizedEmail)
+            ->where('id', '!=', $tenantUser->id)
+            ->exists();
+
+        if ($emailExists) {
+            return back()->withErrors([
+                'email' => 'Un utilisateur avec cette adresse e-mail existe déjà dans cette application.',
+            ]);
+        }
+
+        $tenantUser->update([
+            'name' => $normalizedName,
+            'email' => $normalizedEmail,
+        ]);
+
+        $label = $tenantUser->name ?? $tenantUser->email;
+
+        return back()->with('success', "Profil de « {$label} » mis à jour avec succès.");
     }
 
     /**

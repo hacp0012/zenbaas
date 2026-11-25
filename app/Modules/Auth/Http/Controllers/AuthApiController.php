@@ -20,12 +20,17 @@ class AuthApiController extends Controller
     public function signUp(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:6', 'max:255'],
         ]);
 
         try {
-            $result = $this->authManager->signUp($validated['email'], $validated['password']);
+            $result = $this->authManager->signUp(
+                $validated['email'],
+                $validated['password'],
+                $validated['name'] ?? null,
+            );
 
             return response()->json([
                 'data' => [

@@ -13,13 +13,14 @@ class AuthManager
     public function __construct(public TokenGenerator $tokenGenerator) {}
 
     /**
-     * Register a new tenant user with email and password.
+     * Register a new tenant user with email, password, and optional display name.
      *
      * @return array{user: TenantUser, token: string}
      */
-    public function signUp(string $email, string $password): array
+    public function signUp(string $email, string $password, ?string $name = null): array
     {
         $normalizedEmail = mb_strtolower(trim($email));
+        $normalizedName = $name !== null && trim($name) !== '' ? trim($name) : null;
 
         $existing = TenantUser::query()->where('email', $normalizedEmail)->first();
 
@@ -30,6 +31,7 @@ class AuthManager
         $token = $this->tokenGenerator->generate();
 
         $user = TenantUser::query()->create([
+            'name' => $normalizedName,
             'email' => $normalizedEmail,
             'password_hash' => Hash::make($password),
             'auth_method' => 'password',

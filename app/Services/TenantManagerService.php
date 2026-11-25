@@ -118,6 +118,7 @@ class TenantManagerService
         if (! $schema->hasTable('auth_users')) {
             $schema->create('auth_users', function (Blueprint $table): void {
                 $table->uuid('id')->primary();
+                $table->string('name')->nullable();
                 $table->string('email')->unique();
                 $table->string('password_hash')->nullable();
                 $table->string('auth_method')->default('password');
@@ -126,6 +127,10 @@ class TenantManagerService
                 $table->timestamp('otp_expires_at')->nullable();
                 $table->string('access_token')->nullable()->index();
                 $table->timestamps();
+            });
+        } elseif (! $schema->hasColumn('auth_users', 'name')) {
+            $schema->table('auth_users', function (Blueprint $table): void {
+                $table->string('name')->nullable();
             });
         }
     }

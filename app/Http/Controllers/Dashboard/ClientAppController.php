@@ -193,11 +193,15 @@ class ClientAppController extends Controller
         $tenantUsersQuery = TenantUser::query()->orderByDesc('created_at')->orderByDesc('id');
 
         if ($search !== '') {
-            $tenantUsersQuery->where('email', 'like', '%'.$search.'%');
+            $tenantUsersQuery->where(function ($query) use ($search): void {
+                $query->where('email', 'like', '%'.$search.'%')
+                    ->orWhere('name', 'like', '%'.$search.'%');
+            });
         }
 
         $tenantUsers = $tenantUsersQuery->get()->map(fn (TenantUser $u): array => [
             'id' => $u->id,
+            'name' => $u->name,
             'email' => $u->email,
             'auth_method' => $u->auth_method,
             'is_blocked' => $u->is_blocked,

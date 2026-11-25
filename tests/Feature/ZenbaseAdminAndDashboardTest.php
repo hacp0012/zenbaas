@@ -2,6 +2,7 @@
 
 use App\Models\App;
 use App\Models\User;
+use App\Modules\Auth\Models\TenantUser;
 use App\Services\TenantManagerService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -49,6 +50,37 @@ test('admin users can view the global dashboard and manage client accounts', fun
         'email' => 'dev@zenbase.test',
         'is_admin' => false,
     ]);
+
+    // Admin can update a user's name and email
+    $this->actingAs($admin)
+        ->put(route('admin.users.update', $client), [
+            'name' => 'Jean Client Modifié',
+            'email' => 'jean.modifie@zenbase.test',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    $this->assertDatabaseHas('users', [
+        'id' => $client->id,
+        'name' => 'Jean Client Modifié',
+        'email' => 'jean.modifie@zenbase.test',
+    ]);
+
+    // Duplicate email is rejected
+    $this->actingAs($admin)
+        ->put(route('admin.users.update', $client), [
+            'name' => 'Doublon',
+            'email' => 'dev@zenbase.test',
+        ])
+        ->assertSessionHasErrors('email');
+
+    // Non-admin cannot update user profiles
+    $this->actingAs($client)
+        ->put(route('admin.users.update', $admin), [
+            'name' => 'Pirate',
+            'email' => 'pirate@zenbase.test',
+        ])
+        ->assertForbidden();
 
     $this->actingAs($admin)
         ->patch(route('admin.users.toggle_status', $client))
@@ -484,4 +516,73 @@ test('unavailable routes render the custom 404 inertia page', function () {
             ->where('status', 404)
             ->where('path', 'route-inexistante-zenbase')
         );
+});
+
+test('app owners can create and edit tenant user name and email with strict ownership and uniqueness checks', function () {
+    $owner = User::factory()->create();
+    $otherClient = User::factory()->create();
+    $app = App::factory()->create(['user_id' => $owner->id]);
+
+    // Create two tenant users (one with a name)
+    $this->actingAs($owner)
+        ->post(route('dashboard.apps.users.store', $app), [
+            'name' => 'Alice Initiale',
+            'email' => 'alice@app.test',
+            'password' => 'secret123',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    $this->actingAs($owner)
+        ->post(route('dashboard.apps.users.store', $app), [
+            'email' => 'bob@app.test',
+            'password' => 'secret123',
+        ])
+        ->assertRedirect();
+
+    app(TenantManagerService::class)->connect($app);
+    $alice = TenantUser::query()->where('email', 'alice@app.test')->firstOrFail();
+    expect($alice->name)->toBe('Alice Initiale');
+
+    // Owner updates Alice's name and email
+    $this->actingAs($owner)
+        ->put(route('dashboard.apps.users.update', [$app, $alice->id]), [
+            'name' => 'Alice Modifiée',
+            'email' => 'alice.new@app.test',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    $alice->refresh();
+    expect($alice->name)->toBe('Alice Modifiée');
+    expect($alice->email)->toBe('alice.new@app.test');
+
+    // Duplicate email within the same app is rejected
+    $this->actingAs($owner)
+        ->put(route('dashboard.apps.users.update', [$app, $alice->id]), [
+            'name' => 'Doublon',
+            'email' => 'bob@app.test',
+        ])
+        ->assertSessionHasErrors('email');
+
+    // Non-owner receives 404 (AuthorizesAppOwnership)
+    $this->actingAs($otherClient)
+        ->put(route('dashboard.apps.users.update', [$app, $alice->id]), [
+            'name' => 'Intrus',
+            'email' => 'intrus@app.test',
+        ])
+        ->assertNotFound();
+
+    // Auth page renders updated user name and supports searching by name
+    $this->actingAs($owner)
+        ->get(route('dashboard.apps.auth', ['app' => $app, 'search' => 'Modifiée']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('client/apps/auth')
+            ->has('tenantUsers', 1)
+            ->where('tenantUsers.0.name', 'Alice Modifiée')
+            ->where('tenantUsers.0.email', 'alice.new@app.test')
+        );
+
+    app(TenantManagerService::class)->deleteDatabase($app);
 });

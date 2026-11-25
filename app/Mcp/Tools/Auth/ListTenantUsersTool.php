@@ -40,7 +40,11 @@ class ListTenantUsersTool extends Tool
         $query = TenantUser::query()->orderByDesc('created_at')->orderByDesc('id');
 
         if (isset($validated['search']) && trim((string) $validated['search']) !== '') {
-            $query->where('email', 'like', '%'.trim((string) $validated['search']).'%');
+            $needle = '%'.trim((string) $validated['search']).'%';
+            $query->where(function ($q) use ($needle): void {
+                $q->where('email', 'like', $needle)
+                    ->orWhere('name', 'like', $needle);
+            });
         }
 
         if (array_key_exists('is_blocked', $validated) && $validated['is_blocked'] !== null) {
@@ -52,6 +56,7 @@ class ListTenantUsersTool extends Tool
 
         $users = $query->limit($limit)->get()->map(fn (TenantUser $user): array => [
             'id' => $user->id,
+            'name' => $user->name,
             'email' => $user->email,
             'auth_method' => $user->auth_method,
             'is_blocked' => $user->is_blocked,

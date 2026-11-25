@@ -8,6 +8,7 @@ import {
     HardDrive,
     Infinity as InfinityIcon,
     Layers,
+    Pencil,
     Settings2,
     ShieldAlert,
     Trash2,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { update as updateAdminUser } from '@/actions/App/Http/Controllers/Admin/AdminUserController';
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -101,16 +103,21 @@ function toDateTimeLocalValue(iso: string | null): string {
 }
 
 export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
-    const { auth, flash } = usePage<{
+    const { auth } = usePage<{
         auth: Auth;
-        flash?: { success?: string; error?: string };
     }>().props;
 
     const [userToToggle, setUserToToggle] = useState<AdminUserRow | null>(null);
     const [userToDelete, setUserToDelete] = useState<AdminUserRow | null>(null);
+    const [userToEditProfile, setUserToEditProfile] =
+        useState<AdminUserRow | null>(null);
     const [userToEditQuota, setUserToEditQuota] = useState<AdminUserRow | null>(
         null,
     );
+    const editProfileForm = useForm({
+        name: '',
+        email: '',
+    });
     const [quotaMaxApps, setQuotaMaxApps] = useState<number>(1);
     const [quotaUnlimitedStorage, setQuotaUnlimitedStorage] =
         useState<boolean>(false);
@@ -147,6 +154,28 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                 form.reset();
                 setCreateInfinite(true);
                 setCreateUnlimitedStorage(false);
+            },
+        });
+    }
+
+    function openEditProfileModal(user: AdminUserRow) {
+        setUserToEditProfile(user);
+        editProfileForm.clearErrors();
+        editProfileForm.setData({
+            name: user.name,
+            email: user.email,
+        });
+    }
+
+    function handleSaveProfile(e: FormEvent) {
+        e.preventDefault();
+        if (!userToEditProfile) {
+            return;
+        }
+        editProfileForm.submit(updateAdminUser(userToEditProfile.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setUserToEditProfile(null);
             },
         });
     }
@@ -233,17 +262,6 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                         l&apos;infini).
                     </p>
                 </div>
-
-                {flash?.success && (
-                    <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-                        {flash.success}
-                    </div>
-                )}
-                {flash?.error && (
-                    <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-                        {flash.error}
-                    </div>
-                )}
 
                 <div className="grid gap-6 lg:grid-cols-3">
                     {/* Create Client Form */}
@@ -429,7 +447,8 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                                                         checked={createInfinite}
                                                         onChange={(e) =>
                                                             setCreateInfinite(
-                                                                e.target.checked,
+                                                                e.target
+                                                                    .checked,
                                                             )
                                                         }
                                                         className="size-3.5 rounded"
@@ -599,7 +618,8 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                                                                     <CalendarClock className="size-3" />
                                                                     {user.expires_at ? (
                                                                         <span className="font-mono">
-                                                                            Expire :{' '}
+                                                                            Expire
+                                                                            :{' '}
                                                                             {new Date(
                                                                                 user.expires_at,
                                                                             ).toLocaleDateString(
@@ -677,62 +697,78 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                                                         )}
                                                     </td>
                                                     <td className="py-3 text-right">
-                                                        {isSelf ? (
-                                                            <span className="text-xs text-muted-foreground">
-                                                                Vous-même
-                                                            </span>
-                                                        ) : (
-                                                            <div className="flex justify-end gap-1.5">
-                                                                {!user.is_admin && (
+                                                        <div className="flex flex-wrap items-center justify-end gap-1.5">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    openEditProfileModal(
+                                                                        user,
+                                                                    )
+                                                                }
+                                                                title="Modifier le nom et l'adresse e-mail"
+                                                            >
+                                                                <Pencil className="mr-1 size-3.5 text-sky-600 dark:text-sky-400" />
+                                                                Modifier
+                                                            </Button>
+                                                            {isSelf ? (
+                                                                <span className="px-1 text-xs text-muted-foreground">
+                                                                    Vous-même
+                                                                </span>
+                                                            ) : (
+                                                                <>
+                                                                    {!user.is_admin && (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            onClick={() =>
+                                                                                openQuotaModal(
+                                                                                    user,
+                                                                                )
+                                                                            }
+                                                                            title="Configurer quota d'apps et date d'expiration"
+                                                                        >
+                                                                            <Settings2 className="mr-1 size-3.5 text-emerald-600" />
+                                                                            Quota
+                                                                            &amp;
+                                                                            Expiration
+                                                                        </Button>
+                                                                    )}
                                                                     <Button
                                                                         size="sm"
                                                                         variant="outline"
                                                                         onClick={() =>
-                                                                            openQuotaModal(
+                                                                            setUserToToggle(
                                                                                 user,
                                                                             )
                                                                         }
-                                                                        title="Configurer quota d'apps et date d'expiration"
                                                                     >
-                                                                        <Settings2 className="mr-1 size-3.5 text-emerald-600" />
-                                                                        Quota &
-                                                                        Expiration
+                                                                        {user.is_suspended ? (
+                                                                            <>
+                                                                                <CheckCircle2 className="mr-1 size-3.5 text-emerald-600" />
+                                                                                Réactiver
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <Ban className="mr-1 size-3.5 text-amber-600" />
+                                                                                Suspendre
+                                                                            </>
+                                                                        )}
                                                                     </Button>
-                                                                )}
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    onClick={() =>
-                                                                        setUserToToggle(
-                                                                            user,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    {user.is_suspended ? (
-                                                                        <>
-                                                                            <CheckCircle2 className="mr-1 size-3.5 text-emerald-600" />
-                                                                            Réactiver
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <Ban className="mr-1 size-3.5 text-amber-600" />
-                                                                            Suspendre
-                                                                        </>
-                                                                    )}
-                                                                </Button>
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="destructive"
-                                                                    onClick={() =>
-                                                                        setUserToDelete(
-                                                                            user,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <Trash2 className="size-3.5" />
-                                                                </Button>
-                                                            </div>
-                                                        )}
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="destructive"
+                                                                        onClick={() =>
+                                                                            setUserToDelete(
+                                                                                user,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Trash2 className="size-3.5" />
+                                                                    </Button>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
@@ -744,6 +780,94 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                     </Card>
                 </div>
             </div>
+
+            {/* User Profile Edit Dialog */}
+            <Dialog
+                open={userToEditProfile !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setUserToEditProfile(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Pencil className="size-4 text-emerald-600" />
+                            Modifier le profil — {userToEditProfile?.name}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Modifiez le nom complet et l&apos;adresse e-mail de
+                            cet utilisateur.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSaveProfile} className="space-y-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="edit-user-name">Nom complet</Label>
+                            <Input
+                                id="edit-user-name"
+                                value={editProfileForm.data.name}
+                                onChange={(e) =>
+                                    editProfileForm.setData(
+                                        'name',
+                                        e.target.value,
+                                    )
+                                }
+                                placeholder="Ex: Marie Curie"
+                                required
+                            />
+                            {editProfileForm.errors.name && (
+                                <p className="text-xs text-red-500">
+                                    {editProfileForm.errors.name}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="edit-user-email">
+                                Adresse e-mail
+                            </Label>
+                            <Input
+                                id="edit-user-email"
+                                type="email"
+                                value={editProfileForm.data.email}
+                                onChange={(e) =>
+                                    editProfileForm.setData(
+                                        'email',
+                                        e.target.value,
+                                    )
+                                }
+                                placeholder="client@exemple.com"
+                                required
+                            />
+                            {editProfileForm.errors.email && (
+                                <p className="text-xs text-red-500">
+                                    {editProfileForm.errors.email}
+                                </p>
+                            )}
+                        </div>
+
+                        <DialogFooter className="gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setUserToEditProfile(null)}
+                            >
+                                Annuler
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="bg-emerald-600 text-white hover:bg-emerald-500"
+                                disabled={editProfileForm.processing}
+                            >
+                                {editProfileForm.processing
+                                    ? 'Enregistrement...'
+                                    : 'Enregistrer'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             {/* Quota & Expiration Edit Dialog */}
             <Dialog
@@ -781,7 +905,10 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                                 value={quotaMaxApps}
                                 onChange={(e) =>
                                     setQuotaMaxApps(
-                                        Math.max(1, Number(e.target.value) || 1),
+                                        Math.max(
+                                            1,
+                                            Number(e.target.value) || 1,
+                                        ),
                                     )
                                 }
                                 className="font-mono"
