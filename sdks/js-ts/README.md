@@ -70,7 +70,11 @@ Le client `Zenbase` regroupe les 4 piliers de votre backend au sein d'une interf
 
 ## 📚 Explorer la Documentation du SDK
 
-La documentation détaillée est située directement dans le dossier [`sdks/js-ts/docs/`](./docs/usage.md) de ce SDK :
+La documentation détaillée est organisée par fonctionnalité dans le dossier `sdks/js-ts/docs/` de ce SDK :
 
-1. **[Guide d'utilisation (`docs/usage.md`)](./docs/usage.md)** : Tutoriels complets et cas d'usage pratiques pour chaque module (CRUD NoSQL, Schémas, BLOBs, Auth OTP, Upload de fichiers et Web Functions).
-2. **[Référence API (`docs/reference.md`)](./docs/reference.md)** : Dictionnaire technique exhaustif de toutes les classes, signatures de méthodes, options de configuration et interfaces TypeScript exportées.
+1. **[Démarrage & Initialisation](./docs/getting-started.md)** : Installation, configuration navigateur (`zb_pub_...`) vs serveur Node.js (`zb_sec_...`), en-têtes dynamiques et gestion `{ data, error }`.
+2. **[Base de données NoSQL](./docs/database.md)** : CRUD JSON1, filtres avancés, pagination, gestion de collections, schémas optionnels et champs binaires `ZenbaseBlob`.
+3. **[Authentification](./docs/auth.md)** : Inscription/connexion Email & Mot de passe, OTP à 6 chiffres, changement de mot de passe et écouteurs `onAuthStateChange`.
+4. **[Stockage de fichiers](./docs/storage.md)** : Upload navigateur & Node.js, dossiers logiques, téléchargement binaire, quotas et suppression par lot.
+5. **[Web Functions PHP](./docs/functions.md)** : Découverte et invocation de vos fonctions PHP serverless isolées.
+6. **[Référence API](./docs/reference.md)** : Dictionnaire technique exhaustif de toutes les classes, signatures de méthodes, options de configuration et interfaces TypeScript exportées.

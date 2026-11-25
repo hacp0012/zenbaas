@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router } from "@inertiajs/react";
 import {
     Activity,
     AlertTriangle,
@@ -11,27 +11,27 @@ import {
     RefreshCw,
     Trash2,
     Users,
-} from 'lucide-react';
-import { useState } from 'react';
-import { ConfirmActionDialog } from '@/components/confirm-action-dialog';
-import { PrismCodeBlock } from '@/components/prism-code-block';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import { useState } from "react";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { PrismCodeBlock } from "@/components/prism-code-block";
+import { Button } from "@/components/ui/button";
 import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
-} from '@/components/ui/card';
-import { dashboard } from '@/routes';
-import type { ZenbaseApp } from '@/types';
+} from "@/components/ui/card";
+import { dashboard } from "@/routes";
+import type { ZenbaseApp } from "@/types";
 
 function formatBytes(bytes: number): string {
     if (bytes === 0) {
-        return '0 B';
+        return "0 B";
     }
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
@@ -58,7 +58,7 @@ export default function ClientAppShow({
     const sdkSnippet = `import { Zenbase } from '@zenbase/sdk';
 
 const zb = new Zenbase({
-  endpoint: '${apiBaseUrl.replace(/\/api\/v1$/, '')}',
+  endpoint: '${apiBaseUrl.replace(/\/api\/v1$/, "")}',
   apiKey: '${app.public_key}',
 });
 
@@ -137,7 +137,8 @@ const { fileUrl } = await zb.storage.upload('avatars/photo.png', file);`;
                         <CardContent>
                             <div className="flex items-center justify-between">
                                 <span className="text-2xl font-bold">
-                                    {app.files_count ?? app.files?.length ?? 0} /{' '}
+                                    {app.files_count ?? app.files?.length ?? 0}{" "}
+                                    /{" "}
                                     {app.functions_count ??
                                         app.functions?.length ??
                                         0}
@@ -186,14 +187,12 @@ const { fileUrl } = await zb.storage.upload('avatars/photo.png', file);`;
                                         type="button"
                                         size="sm"
                                         variant="ghost"
-                                        onClick={() =>
-                                            copyText(app.public_key)
-                                        }
+                                        onClick={() => copyText(app.public_key)}
                                     >
                                         <Copy className="mr-1.5 size-3.5" />
                                         {copiedText === app.public_key
-                                            ? 'Copié !'
-                                            : 'Copier'}
+                                            ? "Copié !"
+                                            : "Copier"}
                                     </Button>
                                 </div>
                                 <div className="mt-1 rounded bg-muted px-3 py-2 font-mono text-xs break-all">
@@ -238,8 +237,8 @@ const { fileUrl } = await zb.storage.upload('avatars/photo.png', file);`;
                                             >
                                                 <Copy className="mr-1.5 size-3.5" />
                                                 {copiedText === app.secret_key
-                                                    ? 'Copié !'
-                                                    : 'Copier'}
+                                                    ? "Copié !"
+                                                    : "Copier"}
                                             </Button>
                                         )}
                                     </div>
@@ -247,16 +246,16 @@ const { fileUrl } = await zb.storage.upload('avatars/photo.png', file);`;
                                 <div className="mt-1 rounded bg-muted px-3 py-2 font-mono text-xs break-all">
                                     {showSecretKey
                                         ? app.secret_key
-                                        : 'zb_sec_••••••••••••••••••••••••••••••••••••••••'}
+                                        : "zb_sec_••••••••••••••••••••••••••••••••••••••••"}
                                 </div>
                                 <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300">
                                     <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                                     <span>
                                         <strong>Alerte de sécurité :</strong> Ne
-                                        partagez jamais la clé{' '}
+                                        partagez jamais la clé{" "}
                                         <code className="font-mono">
                                             zb_sec_...
-                                        </code>{' '}
+                                        </code>{" "}
                                         dans une application frontend ou mobile.
                                         Elle contourne les restrictions CORS et
                                         accorde un accès complet.
@@ -272,8 +271,8 @@ const { fileUrl } = await zb.storage.upload('avatars/photo.png', file);`;
                                 Intégration Rapide avec le SDK (@zenbase/sdk)
                             </CardTitle>
                             <CardDescription>
-                                Extrait TypeScript / Node.js affiché avec
-                                PrismJS (Monokai + JetBrains Mono)
+                                {/* Extrait TypeScript / Node.js affiché avec
+                                PrismJS (Monokai + JetBrains Mono) */}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -351,12 +350,12 @@ const { fileUrl } = await zb.storage.upload('avatars/photo.png', file);`;
 ClientAppShow.layout = {
     breadcrumbs: [
         {
-            title: 'Mes Applications',
+            title: "Mes Applications",
             href: dashboard(),
         },
         {
             title: "Vue d'ensemble & Clés API",
-            href: '#',
+            href: "#",
         },
     ],
 };

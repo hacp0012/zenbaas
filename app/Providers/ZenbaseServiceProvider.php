@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Mcp\Support\McpAppContext;
 use App\Models\App;
 use App\Modules\Database\Engines\NoSqlDatabaseEngine;
 use App\Modules\Functions\Services\FunctionRunnerService;
@@ -24,6 +25,7 @@ class ZenbaseServiceProvider extends ServiceProvider
         $this->app->singleton(NoSqlDatabaseEngine::class);
         $this->app->singleton(StorageManagerService::class);
         $this->app->singleton(FunctionRunnerService::class);
+        $this->app->scoped(McpAppContext::class);
     }
 
     /**
@@ -41,6 +43,16 @@ class ZenbaseServiceProvider extends ServiceProvider
 
             return Limit::perMinute(max(10, $maxAttempts))
                 ->by('zenbase_app:'.($app?->id ?? $request->ip()));
+        });
+
+        RateLimiter::for('zenbase-mcp', function (Request $request): Limit {
+            /** @var App|null $app */
+            $app = $request->attributes->get('current_app');
+            $maxAttempts = (int) ($app?->settings['rate_limit'] ?? 120);
+            $key = $app instanceof App ? $app->id : $request->ip();
+
+            return Limit::perMinute(max(10, $maxAttempts))
+                ->by('zenbase_mcp_app:'.$key);
         });
     }
 }

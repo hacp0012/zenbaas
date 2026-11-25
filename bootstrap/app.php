@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuthenticateMcpApp;
 use App\Http\Middleware\DynamicCors;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserNotSuspended;
@@ -35,15 +36,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'not_suspended' => EnsureUserNotSuspended::class,
             'zenbase.cors' => DynamicCors::class,
             'zenbase.apikey' => VerifyApiKey::class,
+            'zenbase.mcp' => AuthenticateMcpApp::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
+            fn (Request $request) => $request->is('api/*') || $request->is('mcp') || $request->is('mcp/*') || $request->expectsJson(),
         );
 
         $exceptions->render(function (NotFoundHttpException $exception, Request $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
+            if ($request->is('api/*') || $request->is('mcp') || $request->is('mcp/*') || $request->expectsJson()) {
                 return null;
             }
 

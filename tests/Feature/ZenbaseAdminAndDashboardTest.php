@@ -348,7 +348,16 @@ test('public sdk documentation page reads markdown files from /docs and each sdk
             ->where('currentDoc.path', 'docs/README.md')
             ->where('currentDoc.nav_label', 'Présentation')
             ->where('currentDoc.category', 'Plateforme')
-            ->has('documents', 4)
+            ->has('documents', 10)
+        );
+
+    $this->get(route('docs', ['doc' => 'docs/web-functions.md']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('docs/show')
+            ->where('currentDoc.path', 'docs/web-functions.md')
+            ->where('currentDoc.nav_label', 'Web Functions (PHP Serverless)')
+            ->where('currentDoc.category', 'Plateforme')
         );
 
     $this->get(route('docs', ['doc' => 'sdks/js-ts/README.md']))
@@ -360,31 +369,33 @@ test('public sdk documentation page reads markdown files from /docs and each sdk
             ->where('currentDoc.nav_label', 'Introduction')
         );
 
-    $this->get(route('docs', ['doc' => 'sdks/js-ts/docs/usage.md']))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('docs/show')
-            ->where('currentDoc.path', 'sdks/js-ts/docs/usage.md')
-            ->where('currentDoc.parent_path', 'sdks/js-ts/README.md')
-            ->where('currentDoc.nav_label', 'Guide d\'utilisation')
-        );
+    foreach ([
+        'sdks/js-ts/docs/getting-started.md' => 'Démarrage & Initialisation',
+        'sdks/js-ts/docs/database.md' => 'Base de données',
+        'sdks/js-ts/docs/auth.md' => 'Authentification',
+        'sdks/js-ts/docs/storage.md' => 'Stockage de fichiers',
+        'sdks/js-ts/docs/functions.md' => 'Web Functions',
+        'sdks/js-ts/docs/reference.md' => 'Références API',
+    ] as $path => $expectedLabel) {
+        $this->get(route('docs', ['doc' => $path]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('docs/show')
+                ->where('currentDoc.path', $path)
+                ->where('currentDoc.parent_path', 'sdks/js-ts/README.md')
+                ->where('currentDoc.nav_label', $expectedLabel)
+            );
+    }
 
-    $this->get(route('docs', ['doc' => 'sdks/js-ts/docs/reference.md']))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('docs/show')
-            ->where('currentDoc.path', 'sdks/js-ts/docs/reference.md')
-            ->where('currentDoc.parent_path', 'sdks/js-ts/README.md')
-            ->where('currentDoc.nav_label', 'Références API')
-        );
-
-    // Backward-compatible legacy query parameters resolve to the SDK's own docs
-    $this->get(route('docs', ['doc' => 'sdks/js-ts.md']))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('docs/show')
-            ->where('currentDoc.path', 'sdks/js-ts/docs/usage.md')
-        );
+    // Backward-compatible legacy query parameters resolve to the SDK's getting-started guide
+    foreach (['sdks/js-ts.md', 'sdks/js-ts/docs/usage.md'] as $legacyPath) {
+        $this->get(route('docs', ['doc' => $legacyPath]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('docs/show')
+                ->where('currentDoc.path', 'sdks/js-ts/docs/getting-started.md')
+            );
+    }
 });
 
 test('admin can set user max storage quota and uploads exceeding the limit are rejected', function () {

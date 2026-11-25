@@ -8,11 +8,20 @@ L'architecture documentaire de Zenbase est organisée de manière décentralisé
 
 ---
 
+## 🧭 Guides de la Plateforme
+
+| Guide | Emplacement | Description |
+| :--- | :--- | :--- |
+| **Web Functions (PHP Serverless)** | `docs/web-functions.md` | [Documentation complète & Stubs IDE](./web-functions.md) — Anatomie d'une fonction, référence `$event` / `$context`, sécurité du sandbox et autocomplétion locale avec `zenbase-stubs.php`. |
+| **Serveur MCP (Agents IA)** | `docs/mcp-server.md` | [Guide du Serveur MCP](./mcp-server.md) — Connexion Streamable HTTP (`POST /mcp`) pour Cursor, Claude Code, VS Code et Antigravity, permissions granulaires, catalogue des 19 tools, 8 resources et 8 prompts guidés. |
+
+---
+
 ## 📦 Catalogue des SDKs Officiels
 
 | Langage / Plateforme | Package | Emplacement Monorepo | Statut | Documentation |
 | :--- | :--- | :--- | :--- | :--- |
-| **Node.js & Web (JS / TS)** | `@zenbase/sdk` | `sdks/js-ts/` | ✅ Disponible | [Présentation](sdks/js-ts/README.md) · [Guide d'utilisation](sdks/js-ts/docs/usage.md) · [Référence API](sdks/js-ts/docs/reference.md) |
+| **Node.js & Web (JS / TS)** | `@zenbase/sdk` | `sdks/js-ts/` | ✅ Disponible | [Présentation](sdks/js-ts/README.md) · [Démarrage](sdks/js-ts/docs/getting-started.md) · [Base de données](sdks/js-ts/docs/database.md) · [Auth](sdks/js-ts/docs/auth.md) · [Stockage](sdks/js-ts/docs/storage.md) · [Functions](sdks/js-ts/docs/functions.md) · [Référence API](sdks/js-ts/docs/reference.md) |
 | **Dart / Flutter** (Mobile & Desktop) | `zenbase_flutter` | `sdks/dart/` | 🚧 Prévu | *À venir* |
 | **Python** (Scripts, IA & Backends) | `zenbase-py` | `sdks/python/` | 🚧 Prévu | *À venir* |
 
@@ -32,7 +41,7 @@ Chaque SDK expose une interface unifiée autour de 4 modules :
 1. **`database` (ou `.collection()`)** : Base de données orientée documents NoSQL propulsée sous le capot par un fichier SQLite isolé par application et l'extension JSON1 (avec support optionnel des schémas de validation et des champs binaires `BLOB`).
 2. **`auth`** : Authentification des utilisateurs finaux de l'application (stockés dans la table `auth_users` de la base SQLite de l'application) par **Email/Mot de passe** ou **Code OTP à 6 chiffres par e-mail**.
 3. **`storage`** : Gestionnaire de fichiers isolé par application (`upload`, `list`, `delete`) avec prise en charge des dossiers logiques.
-4. **`functions`** : Invocation des **Web Functions PHP Serverless** exécutées dans le bac à sable isolé de l'application.
+4. **`functions`** : Invocation des [**Web Functions PHP Serverless**](./web-functions.md) exécutées dans le bac à sable isolé de l'application (avec autocomplétion locale via `zenbase-stubs.php`).
 
 ### 3. Format Standardisé des Réponses
 Toutes les méthodes des SDKs retournent une structure prévisible `{ data, error }` afin d'éviter les exceptions non gérées et de garantir un typage strict :

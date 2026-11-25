@@ -79,6 +79,51 @@ export type ZenbaseFunction = {
     updated_at?: string | null;
 };
 
+export type ZenbaseMcpSettings = {
+    enabled: boolean;
+    read_only: boolean;
+    allow_functions: boolean;
+    allow_auth_management: boolean;
+    allow_storage_write: boolean;
+};
+
+export type ZenbaseMcpToolInfo = {
+    name: string;
+    module: string;
+    access: 'read' | 'write' | 'destructive';
+    active: boolean;
+    description: string;
+};
+
+export type ZenbaseMcpResourceInfo = {
+    uri: string;
+    mime_type: string;
+    is_template: boolean;
+    description: string;
+    usage_example: string;
+};
+
+export type ZenbaseMcpPromptArgumentInfo = {
+    name: string;
+    required: boolean;
+    description: string;
+};
+
+export type ZenbaseMcpPromptInfo = {
+    name: string;
+    description: string;
+    use_case: string;
+    arguments: ZenbaseMcpPromptArgumentInfo[];
+};
+
+export type ZenbaseAgentSkillInfo = {
+    slug: string;
+    title: string;
+    description: string;
+    target_path: string;
+    content: string;
+};
+
 export type ZenbaseApp = {
     id: string;
     name: string;
@@ -102,6 +147,7 @@ export type ZenbaseApp = {
     cors_origins?: ZenbaseCorsOrigin[];
     files?: ZenbaseFile[];
     functions?: ZenbaseFunction[];
+    mcp_settings?: ZenbaseMcpSettings;
 };
 
 export type ZenbaseSchemaFieldType =

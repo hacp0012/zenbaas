@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from "@inertiajs/react";
 import {
     ArrowLeft,
     BookOpen,
@@ -8,13 +8,13 @@ import {
     ShieldAlert,
     Sun,
     Terminal,
-} from 'lucide-react';
-import AppLogoIcon from '@/components/app-logo-icon';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { useAppearance } from '@/hooks/use-appearance';
-import { dashboard, docs, home } from '@/routes';
-import type { Auth } from '@/types';
+} from "lucide-react";
+import AppLogoIcon from "@/components/app-logo-icon";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useAppearance } from "@/hooks/use-appearance";
+import { dashboard, docs, home } from "@/routes";
+import type { Auth } from "@/types";
 
 export default function NotFoundPage({
     status = 404,
@@ -29,7 +29,7 @@ export default function NotFoundPage({
 
     const displayedPath =
         path ??
-        (typeof window !== 'undefined' ? window.location.pathname : '/404');
+        (typeof window !== "undefined" ? window.location.pathname : "/404");
 
     return (
         <>
@@ -61,18 +61,20 @@ export default function NotFoundPage({
                         variant="outline"
                         onClick={() =>
                             updateAppearance(
-                                resolvedAppearance === 'dark' ? 'light' : 'dark',
+                                resolvedAppearance === "dark"
+                                    ? "light"
+                                    : "dark",
                             )
                         }
                     >
-                        {resolvedAppearance === 'dark' ? (
+                        {resolvedAppearance === "dark" ? (
                             <Sun className="mr-1.5 size-3.5 text-amber-400" />
                         ) : (
                             <Moon className="mr-1.5 size-3.5 text-zinc-600" />
                         )}
-                        {resolvedAppearance === 'dark'
-                            ? 'Mode Clair'
-                            : 'Mode Sombre'}
+                        {resolvedAppearance === "dark"
+                            ? "Mode Clair"
+                            : "Mode Sombre"}
                     </Button>
                 </header>
 
@@ -96,8 +98,8 @@ export default function NotFoundPage({
 
                         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
                             La ressource ou la page que vous tentez de consulter
-                            est introuvable, a été déplacée ou son identifiant est
-                            invalide.
+                            est introuvable, a été déplacée ou son identifiant
+                            est invalide.
                         </p>
 
                         {/* Monokai-styled terminal path preview */}
@@ -109,13 +111,15 @@ export default function NotFoundPage({
                                     <span className="size-2 rounded-full bg-[#A6E22E]" />
                                     <span className="ml-1">zenbase-router</span>
                                 </span>
-                                <span className="text-[#F92672]">404 Not Found</span>
+                                <span className="text-[#F92672]">
+                                    404 Not Found
+                                </span>
                             </div>
                             <div className="mt-2 truncate">
-                                <span className="text-[#F92672]">GET</span>{' '}
+                                <span className="text-[#F92672]">GET</span>{" "}
                                 <span className="text-[#A6E22E]">
-                                    /{displayedPath.replace(/^\/+/, '')}
-                                </span>{' '}
+                                    /{displayedPath.replace(/^\/+/, "")}
+                                </span>{" "}
                                 <span className="text-zinc-500">
                                     — Aucune route correspondante
                                 </span>

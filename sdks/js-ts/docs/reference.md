@@ -2,7 +2,7 @@
 
 Cette page constitue la **référence technique exhaustive** du SDK **`@zenbase/sdk`** pour **Node.js (18+)**, **TypeScript**, **Bun**, **Deno** et les navigateurs modernes.
 
-> Vous cherchez des exemples pratiques pas-à-pas ? Consultez le [Guide d'utilisation](./usage.md) ou l'[Introduction du SDK](../README.md).
+> Vous cherchez des exemples pratiques pas-à-pas ? Consultez les guides par fonctionnalité : [Démarrage](./getting-started.md) · [Base de données](./database.md) · [Authentification](./auth.md) · [Stockage](./storage.md) · [Web Functions](./functions.md), ou revenez à l'[Introduction du SDK](../README.md).
 
 ---
 

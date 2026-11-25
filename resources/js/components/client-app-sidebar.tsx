@@ -2,21 +2,33 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     BookOpen,
+    Bot,
+    ChevronRight,
     Cpu,
     Database,
     FolderOpen,
     Globe,
     KeyRound,
     Moon,
+    Plug,
     SlidersHorizontal,
+    Sparkles,
     Sun,
     TerminalSquare,
     Users,
+    Zap,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { NavFooter } from '@/components/nav-footer';
 import { NavUser } from '@/components/nav-user';
 import { Badge } from '@/components/ui/badge';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
     Sidebar,
     SidebarContent,
@@ -36,20 +48,78 @@ import { useAppearance } from '@/hooks/use-appearance';
 import { dashboard } from '@/routes';
 import type { NavItem, ZenbaseApp } from '@/types';
 
+type SidebarSubItem = {
+    title: string;
+    href: string;
+    icon: LucideIcon;
+    isActive: boolean;
+    badge?: string | number | null;
+};
+
+type SidebarSection =
+    | {
+          type: 'link';
+          title: string;
+          href: string;
+          icon: LucideIcon;
+          isActive: boolean;
+          badge: string | number | null;
+      }
+    | {
+          type: 'collapsible';
+          key: string;
+          title: string;
+          icon: LucideIcon;
+          isActive: boolean;
+          subItems: SidebarSubItem[];
+      };
+
 export function ClientAppSidebar() {
     const page = usePage<{ app?: ZenbaseApp }>();
     const app = page.props.app;
     const currentUrl = page.url;
     const { resolvedAppearance, updateAppearance } = useAppearance();
 
+    const baseAppUrl = app ? `/dashboard/apps/${app.id}` : '';
+    const isFunctionsSectionActive =
+        app !== undefined && currentUrl.startsWith(`${baseAppUrl}/functions`);
+    const isAiSectionActive =
+        app !== undefined &&
+        (currentUrl.startsWith(`${baseAppUrl}/mcp`) ||
+            currentUrl.startsWith(`${baseAppUrl}/skills`));
+
+    const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
+        functions: isFunctionsSectionActive,
+        ai: isAiSectionActive,
+    });
+
+    useEffect(() => {
+        if (isFunctionsSectionActive) {
+            setOpenMenus((prev) =>
+                prev.functions ? prev : { ...prev, functions: true },
+            );
+        }
+    }, [isFunctionsSectionActive]);
+
+    useEffect(() => {
+        if (isAiSectionActive) {
+            setOpenMenus((prev) => (prev.ai ? prev : { ...prev, ai: true }));
+        }
+    }, [isAiSectionActive]);
+
     if (!app) {
         return null;
     }
 
-    const baseAppUrl = `/dashboard/apps/${app.id}`;
+    const mcpStatusBadge = app.mcp_settings?.enabled
+        ? app.mcp_settings.read_only
+            ? 'RO'
+            : 'RW'
+        : 'Off';
 
-    const appSections = [
+    const appSections: SidebarSection[] = [
         {
+            type: 'link',
             title: "Vue d'ensemble & Clés API",
             href: baseAppUrl,
             icon: KeyRound,
@@ -59,6 +129,7 @@ export function ClientAppSidebar() {
             badge: null,
         },
         {
+            type: 'link',
             title: 'Base de Données NoSQL',
             href: `${baseAppUrl}/database`,
             icon: Database,
@@ -66,6 +137,7 @@ export function ClientAppSidebar() {
             badge: app.collections_count ?? 0,
         },
         {
+            type: 'link',
             title: 'Utilisateurs / Auth',
             href: `${baseAppUrl}/auth`,
             icon: Users,
@@ -73,6 +145,7 @@ export function ClientAppSidebar() {
             badge: app.tenant_users_count ?? 0,
         },
         {
+            type: 'link',
             title: 'Fichiers / Stockage',
             href: `${baseAppUrl}/storage`,
             icon: FolderOpen,
@@ -80,6 +153,7 @@ export function ClientAppSidebar() {
             badge: app.files_count ?? app.files?.length ?? 0,
         },
         {
+            type: 'link',
             title: 'Origines CORS',
             href: `${baseAppUrl}/cors`,
             icon: Globe,
@@ -87,14 +161,21 @@ export function ClientAppSidebar() {
             badge: app.cors_origins_count ?? app.cors_origins?.length ?? 0,
         },
         {
+            type: 'collapsible',
+            key: 'functions',
             title: 'Web Functions PHP',
-            href: `${baseAppUrl}/functions`,
             icon: Cpu,
-            isActive:
-                currentUrl === `${baseAppUrl}/functions` ||
-                currentUrl.startsWith(`${baseAppUrl}/functions?`),
-            badge: app.functions_count ?? app.functions?.length ?? 0,
+            isActive: isFunctionsSectionActive,
             subItems: [
+                {
+                    title: 'Fonctions',
+                    href: `${baseAppUrl}/functions`,
+                    icon: Zap,
+                    isActive:
+                        currentUrl === `${baseAppUrl}/functions` ||
+                        currentUrl.startsWith(`${baseAppUrl}/functions?`),
+                    badge: app.functions_count ?? app.functions?.length ?? 0,
+                },
                 {
                     title: 'Éditeur PHP (IDE)',
                     href: `${baseAppUrl}/functions/editor`,
@@ -110,6 +191,28 @@ export function ClientAppSidebar() {
                     isActive: currentUrl.startsWith(
                         `${baseAppUrl}/functions/env`,
                     ),
+                },
+            ],
+        },
+        {
+            type: 'collapsible',
+            key: 'ai',
+            title: 'AI',
+            icon: Bot,
+            isActive: isAiSectionActive,
+            subItems: [
+                {
+                    title: 'Serveur MCP',
+                    href: `${baseAppUrl}/mcp`,
+                    icon: Plug,
+                    isActive: currentUrl.startsWith(`${baseAppUrl}/mcp`),
+                    badge: mcpStatusBadge,
+                },
+                {
+                    title: 'Skills',
+                    href: `${baseAppUrl}/skills`,
+                    icon: Sparkles,
+                    isActive: currentUrl.startsWith(`${baseAppUrl}/skills`),
                 },
             ],
         },
@@ -162,56 +265,120 @@ export function ClientAppSidebar() {
 
             <SidebarContent>
                 <SidebarGroup className="px-2 py-0">
-                    <SidebarGroupLabel>Modules de l&apos;Application</SidebarGroupLabel>
+                    <SidebarGroupLabel>
+                        Modules de l&apos;Application
+                    </SidebarGroupLabel>
                     <SidebarMenu>
-                        {appSections.map((item) => (
-                            <SidebarMenuItem key={item.href}>
-                                <SidebarMenuButton
-                                    asChild
-                                    isActive={item.isActive}
-                                    tooltip={{ children: item.title }}
-                                >
-                                    <Link href={item.href} prefetch>
-                                        <item.icon className="size-4" />
-                                        <span>{item.title}</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                                {item.badge !== null && (
-                                    <SidebarMenuBadge>
-                                        <Badge
-                                            variant="secondary"
-                                            className="h-5 px-1.5 font-mono text-[10px]"
-                                        >
-                                            {item.badge}
-                                        </Badge>
-                                    </SidebarMenuBadge>
-                                )}
-                                {item.subItems && item.subItems.length > 0 && (
-                                    <SidebarMenuSub>
-                                        {item.subItems.map((subItem) => (
-                                            <SidebarMenuSubItem
-                                                key={subItem.href}
-                                            >
-                                                <SidebarMenuSubButton
-                                                    asChild
-                                                    isActive={subItem.isActive}
+                        {appSections.map((item) => {
+                            if (item.type === 'collapsible') {
+                                const isOpen = Boolean(openMenus[item.key]);
+
+                                return (
+                                    <Collapsible
+                                        key={item.key}
+                                        asChild
+                                        open={isOpen}
+                                        onOpenChange={(open) =>
+                                            setOpenMenus((prev) => ({
+                                                ...prev,
+                                                [item.key]: open,
+                                            }))
+                                        }
+                                        className="group/collapsible"
+                                    >
+                                        <SidebarMenuItem>
+                                            <CollapsibleTrigger asChild>
+                                                <SidebarMenuButton
+                                                    isActive={item.isActive}
+                                                    tooltip={{
+                                                        children: item.title,
+                                                    }}
                                                 >
-                                                    <Link
-                                                        href={subItem.href}
-                                                        prefetch
-                                                    >
-                                                        <subItem.icon className="size-3.5" />
-                                                        <span>
-                                                            {subItem.title}
-                                                        </span>
-                                                    </Link>
-                                                </SidebarMenuSubButton>
-                                            </SidebarMenuSubItem>
-                                        ))}
-                                    </SidebarMenuSub>
-                                )}
-                            </SidebarMenuItem>
-                        ))}
+                                                    <item.icon className="size-4" />
+                                                    <span>{item.title}</span>
+                                                    <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                                </SidebarMenuButton>
+                                            </CollapsibleTrigger>
+                                            <CollapsibleContent>
+                                                <SidebarMenuSub>
+                                                    {item.subItems.map(
+                                                        (subItem) => (
+                                                            <SidebarMenuSubItem
+                                                                key={
+                                                                    subItem.href
+                                                                }
+                                                            >
+                                                                <SidebarMenuSubButton
+                                                                    asChild
+                                                                    isActive={
+                                                                        subItem.isActive
+                                                                    }
+                                                                >
+                                                                    <Link
+                                                                        href={
+                                                                            subItem.href
+                                                                        }
+                                                                        prefetch
+                                                                        className="flex items-center justify-between gap-2"
+                                                                    >
+                                                                        <span className="flex min-w-0 items-center gap-2">
+                                                                            <subItem.icon className="size-3.5 shrink-0" />
+                                                                            <span className="truncate">
+                                                                                {
+                                                                                    subItem.title
+                                                                                }
+                                                                            </span>
+                                                                        </span>
+                                                                        {subItem.badge !==
+                                                                            undefined &&
+                                                                            subItem.badge !==
+                                                                                null && (
+                                                                                <Badge
+                                                                                    variant="secondary"
+                                                                                    className="h-4 px-1.5 font-mono text-[10px]"
+                                                                                >
+                                                                                    {
+                                                                                        subItem.badge
+                                                                                    }
+                                                                                </Badge>
+                                                                            )}
+                                                                    </Link>
+                                                                </SidebarMenuSubButton>
+                                                            </SidebarMenuSubItem>
+                                                        ),
+                                                    )}
+                                                </SidebarMenuSub>
+                                            </CollapsibleContent>
+                                        </SidebarMenuItem>
+                                    </Collapsible>
+                                );
+                            }
+
+                            return (
+                                <SidebarMenuItem key={item.href}>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={item.isActive}
+                                        tooltip={{ children: item.title }}
+                                    >
+                                        <Link href={item.href} prefetch>
+                                            <item.icon className="size-4" />
+                                            <span>{item.title}</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                    {item.badge !== null && (
+                                        <SidebarMenuBadge>
+                                            <Badge
+                                                variant="secondary"
+                                                className="h-5 px-1.5 font-mono text-[10px]"
+                                            >
+                                                {item.badge}
+                                            </Badge>
+                                        </SidebarMenuBadge>
+                                    )}
+                                </SidebarMenuItem>
+                            );
+                        })}
                     </SidebarMenu>
                 </SidebarGroup>
             </SidebarContent>
@@ -222,7 +389,9 @@ export function ClientAppSidebar() {
                         <SidebarMenuButton
                             onClick={() =>
                                 updateAppearance(
-                                    resolvedAppearance === 'dark' ? 'light' : 'dark',
+                                    resolvedAppearance === 'dark'
+                                        ? 'light'
+                                        : 'dark',
                                 )
                             }
                             tooltip={{
@@ -239,7 +408,9 @@ export function ClientAppSidebar() {
                             )}
                             <span>
                                 Thème :{' '}
-                                {resolvedAppearance === 'dark' ? 'Sombre' : 'Clair'}
+                                {resolvedAppearance === 'dark'
+                                    ? 'Sombre'
+                                    : 'Clair'}
                             </span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

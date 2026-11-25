@@ -259,7 +259,7 @@ export default function Welcome() {
                                     <ArrowRight className="size-4" />
                                 </Link>
                                 <Link
-                                    href="/docs?doc=sdks/js-ts/docs/usage.md"
+                                    href="/docs?doc=sdks/js-ts/docs/getting-started.md"
                                     className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                 >
                                     Guide SDK Node.js & Web
@@ -275,11 +275,11 @@ export default function Welcome() {
                                 Exemple d&apos;utilisation du SDK Node.js & Web (@zenbase/sdk)
                             </span>
                             <Link
-                                href="/docs?doc=sdks/js-ts/docs/usage.md"
+                                href="/docs?doc=sdks/js-ts/docs/getting-started.md"
                                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
                             >
                                 <BookOpen className="size-3.5" />
-                                Lire la documentation complète (sdks/js-ts/docs/usage.md)
+                                Lire la documentation complète du SDK
                             </Link>
                         </div>
                         <PrismCodeBlock

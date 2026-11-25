@@ -18,9 +18,10 @@ class DocsController extends Controller
      */
     private const LEGACY_PATH_MAP = [
         'README.md' => 'docs/README.md',
-        'sdks/js-ts.md' => 'sdks/js-ts/docs/usage.md',
+        'sdks/js-ts.md' => 'sdks/js-ts/docs/getting-started.md',
+        'sdks/js-ts/docs/usage.md' => 'sdks/js-ts/docs/getting-started.md',
         'sdks/nodejs-reference.md' => 'sdks/js-ts/docs/reference.md',
-        'docs/sdks/js-ts.md' => 'sdks/js-ts/docs/usage.md',
+        'docs/sdks/js-ts.md' => 'sdks/js-ts/docs/getting-started.md',
         'docs/sdks/nodejs-reference.md' => 'sdks/js-ts/docs/reference.md',
     ];
 
@@ -186,9 +187,14 @@ class DocsController extends Controller
                         $title = $this->extractTitle($contents, $docFile->getFilenameWithoutExtension());
 
                         [$navLabel, $sortOrder] = match ($stem) {
-                            'usage', 'usages', 'guide', 'quickstart' => ['Guide d\'utilisation', 110],
-                            'reference', 'references', 'api' => ['Références API', 120],
-                            default => [$title, 150],
+                            'getting-started', 'quickstart', 'setup', 'installation' => ['Démarrage & Initialisation', 105],
+                            'usage', 'usages', 'guide' => ['Guide d\'utilisation', 108],
+                            'database', 'db', 'collections' => ['Base de données', 110],
+                            'auth', 'authentication' => ['Authentification', 120],
+                            'storage', 'files' => ['Stockage de fichiers', 130],
+                            'functions', 'web-functions', 'edge-functions' => ['Web Functions', 140],
+                            'reference', 'references', 'api' => ['Références API', 190],
+                            default => [$title, 160],
                         };
 
                         $items[] = [

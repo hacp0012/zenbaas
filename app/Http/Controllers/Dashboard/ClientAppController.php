@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Concerns\AuthorizesAppOwnership;
 use App\Http\Controllers\Controller;
+use App\Mcp\Servers\ZenbaseAppServer;
 use App\Models\App;
 use App\Modules\Auth\Models\TenantUser;
 use App\Modules\Database\Engines\NoSqlDatabaseEngine;
@@ -380,6 +381,38 @@ class ClientAppController extends Controller
     }
 
     /**
+     * Display the MCP Server configuration & AI client integration page for a specific application.
+     */
+    public function mcp(Request $request, App $app): Response
+    {
+        $this->ensureAppOwnership($request, $app);
+
+        $mcpSettings = $app->mcpSettings();
+
+        return Inertia::render('client/apps/mcp', [
+            ...$this->buildBaseAppContext($app),
+            'mcpEndpointUrl' => url('/mcp'),
+            'mcpSettings' => $mcpSettings,
+            'mcpTools' => ZenbaseAppServer::toolCatalog($mcpSettings),
+            'mcpResources' => ZenbaseAppServer::resourceCatalog(),
+            'mcpPrompts' => ZenbaseAppServer::promptCatalog(),
+        ]);
+    }
+
+    /**
+     * Display the downloadable Agent Skills page for AI coding assistants connected to this application.
+     */
+    public function skills(Request $request, App $app): Response
+    {
+        $this->ensureAppOwnership($request, $app);
+
+        return Inertia::render('client/apps/skills', [
+            ...$this->buildBaseAppContext($app),
+            'mcpSkills' => AppMcpController::skillCatalog(),
+        ]);
+    }
+
+    /**
      * Build the shared application context used by the ClientAppLayout sidebar and sub-pages.
      *
      * @return array<string, mixed>
@@ -413,6 +446,7 @@ class ClientAppController extends Controller
                 'cors_origins' => $corsOrigins,
                 'files' => $files,
                 'functions' => $functions,
+                'mcp_settings' => $app->mcpSettings(),
             ],
             'collections' => $collections,
             'apiBaseUrl' => url('/api/v1'),

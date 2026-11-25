@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Dashboard\AppCorsController;
 use App\Http\Controllers\Dashboard\AppDatabaseController;
 use App\Http\Controllers\Dashboard\AppFunctionController;
+use App\Http\Controllers\Dashboard\AppMcpController;
 use App\Http\Controllers\Dashboard\AppStorageController;
 use App\Http\Controllers\Dashboard\AppTenantUserController;
 use App\Http\Controllers\Dashboard\ClientAppController;
@@ -38,6 +39,8 @@ Route::middleware(['auth', 'verified', 'not_suspended'])->group(function (): voi
 
     Route::prefix('dashboard')->name('dashboard.')->group(function (): void {
         Route::get('stubs/zenbase-stubs.php', [AppFunctionController::class, 'downloadStubs'])->name('stubs.download');
+        Route::get('skills/zenbase-skills.zip', [AppMcpController::class, 'downloadSkillsBundle'])->name('skills.bundle');
+        Route::get('skills/{skill}/SKILL.md', [AppMcpController::class, 'downloadSkill'])->name('skills.download');
 
         Route::get('apps', [ClientAppController::class, 'index'])->name('apps.index');
         Route::post('apps', [ClientAppController::class, 'store'])->name('apps.store');
@@ -49,6 +52,9 @@ Route::middleware(['auth', 'verified', 'not_suspended'])->group(function (): voi
         Route::get('apps/{app}/functions', [ClientAppController::class, 'functions'])->name('apps.functions');
         Route::get('apps/{app}/functions/editor/{function?}', [ClientAppController::class, 'functionEditor'])->name('apps.functions.editor');
         Route::get('apps/{app}/functions/env', [ClientAppController::class, 'functionEnv'])->name('apps.functions.env');
+        Route::get('apps/{app}/mcp', [ClientAppController::class, 'mcp'])->name('apps.mcp');
+        Route::put('apps/{app}/mcp', [AppMcpController::class, 'update'])->name('apps.mcp.update');
+        Route::get('apps/{app}/skills', [ClientAppController::class, 'skills'])->name('apps.skills');
         Route::post('apps/{app}/regenerate-keys', [ClientAppController::class, 'regenerateKeys'])->name('apps.regenerate_keys');
         Route::delete('apps/{app}', [ClientAppController::class, 'destroy'])->name('apps.destroy');
 

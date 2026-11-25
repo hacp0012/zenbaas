@@ -105,6 +105,57 @@ class App extends Model
     }
 
     /**
+     * Return the default MCP configuration for an application.
+     *
+     * @return array{
+     *     enabled: bool,
+     *     read_only: bool,
+     *     allow_functions: bool,
+     *     allow_auth_management: bool,
+     *     allow_storage_write: bool
+     * }
+     */
+    public static function defaultMcpSettings(): array
+    {
+        return [
+            'enabled' => false,
+            'read_only' => true,
+            'allow_functions' => false,
+            'allow_auth_management' => false,
+            'allow_storage_write' => false,
+        ];
+    }
+
+    /**
+     * Return the normalized MCP configuration for this application.
+     *
+     * @return array{
+     *     enabled: bool,
+     *     read_only: bool,
+     *     allow_functions: bool,
+     *     allow_auth_management: bool,
+     *     allow_storage_write: bool
+     * }
+     */
+    public function mcpSettings(): array
+    {
+        $defaults = self::defaultMcpSettings();
+        $mcp = is_array($this->settings['mcp'] ?? null) ? $this->settings['mcp'] : [];
+
+        $readOnly = array_key_exists('read_only', $mcp)
+            ? (bool) $mcp['read_only']
+            : $defaults['read_only'];
+
+        return [
+            'enabled' => (bool) ($mcp['enabled'] ?? $defaults['enabled']),
+            'read_only' => $readOnly,
+            'allow_functions' => ! $readOnly && (bool) ($mcp['allow_functions'] ?? $defaults['allow_functions']),
+            'allow_auth_management' => ! $readOnly && (bool) ($mcp['allow_auth_management'] ?? $defaults['allow_auth_management']),
+            'allow_storage_write' => ! $readOnly && (bool) ($mcp['allow_storage_write'] ?? $defaults['allow_storage_write']),
+        ];
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

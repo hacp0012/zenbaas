@@ -6,16 +6,21 @@ import {
     ChevronRight,
     Code2,
     Copy,
+    Database,
     Eye,
     FileCode2,
     FileText,
     FolderOpen,
+    HardDrive,
+    KeyRound,
     Moon,
     Package,
+    Rocket,
     ShieldAlert,
     Sparkles,
     Sun,
     Terminal,
+    Zap,
 } from 'lucide-react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-markup-templating';
@@ -81,6 +86,9 @@ export default function DocsShow({
     const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
         'sdks/js-ts/README.md': true,
     });
+    const [activeHeadingId, setActiveHeadingId] = useState<string | null>(
+        () => headings[0]?.id ?? null,
+    );
     const markdownContainerRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
@@ -88,6 +96,86 @@ export default function DocsShow({
             Prism.highlightAllUnder(markdownContainerRef.current);
         }
     }, [htmlContent, viewMode, resolvedAppearance]);
+
+    useEffect(() => {
+        if (headings.length === 0) {
+            setActiveHeadingId(null);
+            return;
+        }
+
+        const hashId = window.location.hash.replace(/^#/, '');
+        if (hashId && headings.some((h) => h.id === hashId)) {
+            setActiveHeadingId(hashId);
+        } else {
+            setActiveHeadingId(headings[0].id);
+        }
+    }, [currentDoc?.path, headings]);
+
+    useEffect(() => {
+        if (viewMode !== 'rendered' || headings.length === 0) {
+            return;
+        }
+
+        const activationOffset = 128;
+        let rafId: number | null = null;
+
+        const updateActiveHeading = () => {
+            rafId = null;
+
+            const elements = headings
+                .map((h) => ({
+                    id: h.id,
+                    el: document.getElementById(h.id),
+                }))
+                .filter(
+                    (item): item is { id: string; el: HTMLElement } =>
+                        item.el !== null,
+                );
+
+            if (elements.length === 0) {
+                return;
+            }
+
+            const isAtBottom =
+                window.innerHeight + window.scrollY >=
+                document.documentElement.scrollHeight - 24;
+
+            if (isAtBottom) {
+                setActiveHeadingId(elements[elements.length - 1].id);
+                return;
+            }
+
+            let currentId = elements[0].id;
+            for (const item of elements) {
+                if (item.el.getBoundingClientRect().top <= activationOffset) {
+                    currentId = item.id;
+                } else {
+                    break;
+                }
+            }
+
+            setActiveHeadingId(currentId);
+        };
+
+        const handleScroll = () => {
+            if (rafId !== null) {
+                return;
+            }
+            rafId = window.requestAnimationFrame(updateActiveHeading);
+        };
+
+        updateActiveHeading();
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('resize', handleScroll, { passive: true });
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('resize', handleScroll);
+            if (rafId !== null) {
+                window.cancelAnimationFrame(rafId);
+            }
+        };
+    }, [headings, viewMode, currentDoc?.path]);
 
     const groupedDocuments = useMemo(() => {
         const childrenByParent: Record<string, DocFileItem[]> = {};
@@ -146,6 +234,7 @@ export default function DocsShow({
 
     function handleHeadingClick(e: MouseEvent<HTMLAnchorElement>, id: string) {
         e.preventDefault();
+        setActiveHeadingId(id);
         if (viewMode !== 'rendered') {
             setViewMode('rendered');
             setTimeout(() => {
@@ -159,6 +248,30 @@ export default function DocsShow({
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
             window.history.replaceState(null, '', `#${id}`);
         }
+    }
+
+    function renderChildIcon(filename: string) {
+        const lower = filename.toLowerCase();
+        if (lower.includes('reference') || lower.includes('api')) {
+            return <Code2 className="size-3.5 shrink-0" />;
+        }
+        if (lower.includes('getting-started') || lower.includes('quickstart')) {
+            return <Rocket className="size-3.5 shrink-0" />;
+        }
+        if (lower.includes('database') || lower.includes('db')) {
+            return <Database className="size-3.5 shrink-0" />;
+        }
+        if (lower.includes('auth')) {
+            return <KeyRound className="size-3.5 shrink-0" />;
+        }
+        if (lower.includes('storage') || lower.includes('files')) {
+            return <HardDrive className="size-3.5 shrink-0" />;
+        }
+        if (lower.includes('function')) {
+            return <Zap className="size-3.5 shrink-0" />;
+        }
+
+        return <BookOpen className="size-3.5 shrink-0" />;
     }
 
     return (
@@ -255,7 +368,7 @@ export default function DocsShow({
                 <div className="mx-auto grid max-w-[1600px] gap-6 px-6 py-8 lg:grid-cols-12">
                     {/* Left Sidebar: Platform & SDKs Navigation */}
                     <aside className="lg:col-span-3 xl:col-span-2">
-                        <div className="sticky top-20 space-y-6 rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
+                        <div className="sticky top-20 max-h-[calc(100vh-6rem)] space-y-6 overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
                             <div className="flex items-center justify-between border-b pb-3">
                                 <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-zinc-500 uppercase">
                                     <FolderOpen className="size-4 text-emerald-600" />
@@ -288,7 +401,7 @@ export default function DocsShow({
                                                     <Link
                                                         href={`/docs?doc=${encodeURIComponent(doc.path)}`}
                                                         prefetch
-                                                        className={`flex min-w-0 flex-1 flex-col rounded-xl px-3 py-2 text-sm transition ${
+                                                        className={`flex min-w-0 flex-1 items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${
                                                             isActive && !isSdkGroup
                                                                 ? 'bg-emerald-600 font-semibold text-white shadow-xs'
                                                                 : isActive || hasActiveChild
@@ -296,26 +409,13 @@ export default function DocsShow({
                                                                   : 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
                                                         }`}
                                                     >
-                                                        <span className="flex items-center gap-2 truncate">
-                                                            {isSdkGroup ? (
-                                                                <Package className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                                                            ) : (
-                                                                <FileText className="size-3.5 shrink-0" />
-                                                            )}
-                                                            <span className="truncate">
-                                                                {doc.sdk_label ?? doc.nav_label ?? doc.title}
-                                                            </span>
-                                                        </span>
-                                                        <span
-                                                            className={`mt-0.5 pl-5 font-mono text-[10px] ${
-                                                                isActive && !isSdkGroup
-                                                                    ? 'text-emerald-100'
-                                                                    : 'text-zinc-400'
-                                                            }`}
-                                                        >
-                                                            {doc.sdk_slug
-                                                                ? `sdks/${doc.sdk_slug}/`
-                                                                : doc.path}
+                                                        {isSdkGroup ? (
+                                                            <Package className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                                                        ) : (
+                                                            <FileText className="size-3.5 shrink-0" />
+                                                        )}
+                                                        <span className="truncate">
+                                                            {doc.sdk_label ?? doc.nav_label ?? doc.title}
                                                         </span>
                                                     </Link>
 
@@ -343,26 +443,15 @@ export default function DocsShow({
                                                         <Link
                                                             href={`/docs?doc=${encodeURIComponent(doc.path)}`}
                                                             prefetch
-                                                            className={`flex flex-col rounded-lg px-2.5 py-1.5 text-xs transition ${
+                                                            className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition ${
                                                                 isActive
                                                                     ? 'bg-emerald-600 font-semibold text-white shadow-xs'
                                                                     : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/70'
                                                             }`}
                                                         >
-                                                            <span className="flex items-center gap-1.5 truncate">
-                                                                <Sparkles className="size-3 shrink-0" />
-                                                                <span className="truncate">
-                                                                    {doc.nav_label || 'Introduction'}
-                                                                </span>
-                                                            </span>
-                                                            <span
-                                                                className={`mt-0.5 pl-4 font-mono text-[9px] ${
-                                                                    isActive
-                                                                        ? 'text-emerald-100'
-                                                                        : 'text-zinc-400'
-                                                                }`}
-                                                            >
-                                                                {doc.path}
+                                                            <Sparkles className="size-3.5 shrink-0" />
+                                                            <span className="truncate">
+                                                                {doc.nav_label || 'Introduction'}
                                                             </span>
                                                         </Link>
 
@@ -371,40 +460,21 @@ export default function DocsShow({
                                                             const isChildActive =
                                                                 currentDoc?.path ===
                                                                 child.path;
-                                                            const isReference =
-                                                                child.filename
-                                                                    .toLowerCase()
-                                                                    .includes('reference');
 
                                                             return (
                                                                 <Link
                                                                     key={child.path}
                                                                     href={`/docs?doc=${encodeURIComponent(child.path)}`}
                                                                     prefetch
-                                                                    className={`flex flex-col rounded-lg px-2.5 py-1.5 text-xs transition ${
+                                                                    className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition ${
                                                                         isChildActive
                                                                             ? 'bg-emerald-600 font-semibold text-white shadow-xs'
                                                                             : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/70'
                                                                     }`}
                                                                 >
-                                                                    <span className="flex items-center gap-1.5 truncate">
-                                                                        {isReference ? (
-                                                                            <Code2 className="size-3 shrink-0" />
-                                                                        ) : (
-                                                                            <BookOpen className="size-3 shrink-0" />
-                                                                        )}
-                                                                        <span className="truncate">
-                                                                            {child.nav_label || child.title}
-                                                                        </span>
-                                                                    </span>
-                                                                    <span
-                                                                        className={`mt-0.5 pl-4 font-mono text-[9px] ${
-                                                                            isChildActive
-                                                                                ? 'text-emerald-100'
-                                                                                : 'text-zinc-400'
-                                                                        }`}
-                                                                    >
-                                                                        {child.path}
+                                                                    {renderChildIcon(child.filename)}
+                                                                    <span className="truncate">
+                                                                        {child.nav_label || child.title}
                                                                     </span>
                                                                 </Link>
                                                             );
@@ -494,39 +564,55 @@ export default function DocsShow({
                         )}
                     </main>
 
-                    {/* Right Sidebar: Table of Contents */}
+                    {/* Right Sidebar: Table of Contents (Scrollspy) */}
                     <aside className="lg:col-span-3 xl:col-span-2">
-                        <div className="sticky top-20 rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
+                        <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
                             <div className="mb-3 flex items-center gap-2 border-b pb-2.5 text-xs font-bold tracking-wider text-zinc-500 uppercase">
                                 <BookOpen className="size-4 text-emerald-600" />
-                                Sommaire du fichier
+                                Sur cette page
                             </div>
                             {headings.length === 0 ? (
                                 <p className="text-xs text-zinc-400">
                                     Aucune sous-section détectée.
                                 </p>
                             ) : (
-                                <ul className="space-y-1.5 text-xs">
-                                    {headings.map((h, i) => (
-                                        <li
-                                            key={`${h.id}-${i}`}
-                                            className={h.level === 3 ? 'pl-3' : ''}
-                                        >
-                                            <a
-                                                href={`#${h.id}`}
-                                                onClick={(e) =>
-                                                    handleHeadingClick(e, h.id)
-                                                }
-                                                className={`block rounded-md px-2 py-1 transition hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 ${
-                                                    h.level === 3
-                                                        ? 'text-zinc-500 dark:text-zinc-400'
-                                                        : 'font-medium text-zinc-800 dark:text-zinc-200'
-                                                }`}
-                                            >
-                                                {h.text}
-                                            </a>
-                                        </li>
-                                    ))}
+                                <ul className="space-y-1 border-l border-zinc-200 text-xs dark:border-zinc-800">
+                                    {headings.map((h, i) => {
+                                        const isHeadingActive =
+                                            activeHeadingId === h.id;
+
+                                        return (
+                                            <li key={`${h.id}-${i}`}>
+                                                <a
+                                                    href={`#${h.id}`}
+                                                    aria-current={
+                                                        isHeadingActive
+                                                            ? 'location'
+                                                            : undefined
+                                                    }
+                                                    onClick={(e) =>
+                                                        handleHeadingClick(
+                                                            e,
+                                                            h.id,
+                                                        )
+                                                    }
+                                                    className={`-ml-px block rounded-r-md border-l-2 py-1 pr-2 transition ${
+                                                        h.level === 3
+                                                            ? 'pl-5'
+                                                            : 'pl-3'
+                                                    } ${
+                                                        isHeadingActive
+                                                            ? 'border-emerald-600 bg-emerald-500/10 font-semibold text-emerald-700 dark:border-emerald-400 dark:bg-emerald-500/15 dark:text-emerald-300'
+                                                            : h.level === 3
+                                                              ? 'border-transparent text-zinc-500 hover:border-zinc-300 hover:bg-zinc-100/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100'
+                                                              : 'border-transparent font-medium text-zinc-700 hover:border-zinc-300 hover:bg-zinc-100/70 hover:text-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100'
+                                                    }`}
+                                                >
+                                                    {h.text}
+                                                </a>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             )}
                         </div>
