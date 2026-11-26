@@ -1,8 +1,10 @@
 import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
+import { useState } from 'react';
 import AppLogo from '@/components/app-logo';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import { LogoutConfirmDialog } from '@/components/logout-confirm-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -68,6 +70,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
     const { auth } = page.props;
     const getInitials = useInitials();
     const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
+    const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
     return (
         <>
@@ -93,7 +96,9 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                     Navigation menu
                                 </SheetTitle>
                                 <SheetHeader className="flex justify-start text-left">
-                                    <AppLogoIcon className="h-6 w-6 fill-current text-black dark:text-white" />
+                                    <div className="flex size-8 items-center justify-center rounded-lg bg-[#081a14] text-emerald-500 ring-1 ring-emerald-500/25 ring-inset">
+                                        <AppLogoIcon className="size-5 text-emerald-500" />
+                                    </div>
                                 </SheetHeader>
                                 <div className="flex h-full flex-1 flex-col space-y-4 p-4">
                                     <div className="flex h-full flex-col justify-between text-sm">
@@ -229,7 +234,12 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-56" align="end">
                                 {auth.user && (
-                                    <UserMenuContent user={auth.user} />
+                                    <UserMenuContent
+                                        user={auth.user}
+                                        onLogoutRequest={() =>
+                                            setLogoutDialogOpen(true)
+                                        }
+                                    />
                                 )}
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -243,6 +253,10 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                     </div>
                 </div>
             )}
+            <LogoutConfirmDialog
+                open={logoutDialogOpen}
+                onOpenChange={setLogoutDialogOpen}
+            />
         </>
     );
 }

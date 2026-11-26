@@ -95,6 +95,11 @@ export type ZenbaseRateLimitSettings = {
     functions_per_minute: number;
     storage_per_minute: number;
     mcp_per_minute: number;
+    function_mail_per_minute: number;
+    function_mail_per_invocation: number;
+    function_mail_max_recipients: number;
+    function_http_per_invocation: number;
+    function_http_timeout_seconds: number;
 };
 
 export type ZenbaseMcpToolInfo = {

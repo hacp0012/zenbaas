@@ -26,8 +26,8 @@ export default function AuthCardLayout({
                     href={home()}
                     className="flex shrink-0 items-center gap-2.5 self-center font-bold"
                 >
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white">
-                        <AppLogoIcon className="size-6 text-white" />
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-[#081a14] text-emerald-500 ring-1 ring-emerald-500/25 ring-inset">
+                        <AppLogoIcon className="size-6 text-emerald-500" />
                     </div>
                     <span className="text-lg tracking-tight">Zenbase</span>
                 </Link>

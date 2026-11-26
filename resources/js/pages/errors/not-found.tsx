@@ -47,8 +47,8 @@ export default function NotFoundPage({
                 {/* Top bar */}
                 <header className="relative z-10 mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-5">
                     <Link href={home()} className="flex items-center gap-2.5">
-                        <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
-                            <AppLogoIcon className="size-5 text-white" />
+                        <div className="flex size-9 items-center justify-center rounded-xl bg-[#081a14] text-emerald-500 ring-1 ring-emerald-500/25 ring-inset">
+                            <AppLogoIcon className="size-5 text-emerald-500" />
                         </div>
                         <span className="text-base font-bold tracking-tight">
                             Zenbase
@@ -156,10 +156,7 @@ export default function NotFoundPage({
                                         </Link>
                                     </Button>
                                 ) : (
-                                    <Button
-                                        asChild
-                                        className="bg-emerald-600 text-white hover:bg-emerald-500"
-                                    >
+                                    <Button asChild>
                                         <Link href={dashboard()}>
                                             <Terminal className="mr-1.5 size-4" />
                                             Mon Dashboard

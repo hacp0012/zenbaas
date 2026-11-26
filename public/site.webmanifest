@@ -1,0 +1,26 @@
+{
+    "name": "Zenbase",
+    "short_name": "Zenbase",
+    "description": "Plateforme Backend-as-a-Service multi-tenant propulsée par Laravel et SQLite JSON1 isolé : API NoSQL instantanées, Auth OTP, Stockage cloisonné, Web Functions PHP et Serveur MCP.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0e0f11",
+    "theme_color": "#059669",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        },
+        {
+            "src": "/favicon-96x96.png",
+            "sizes": "96x96",
+            "type": "image/png"
+        },
+        {
+            "src": "/apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
+        }
+    ]
+}

@@ -1,0 +1,121 @@
+[
+ {
+  "mode": "redesign",
+  "depth": "full",
+  "scope": "page",
+  "shape": "Feature Stack",
+  "draw": "974ba1",
+  "theme": "Coral",
+  "axes": "light/grotesk-sans/warm",
+  "hero": "Banner",
+  "nav": "masthead",
+  "footer": "letter close",
+  "imagery": "cotton App Manifest stationery sheet on felt desk",
+  "photos": [],
+  "entry": "resources/js/pages/welcome.tsx",
+  "fingerprint": "Sticky|Two-column asymmetric|Hairline|Solid|Tightly cropped to the grid|None",
+  "sections": [
+   "Hero",
+   "Pinned",
+   "Table",
+   "Band",
+   "Switcher",
+   "Footer"
+  ],
+  "signature": "left-lit cotton Zenbase App Manifest with pressed coral Isolé stamp and dark board access band",
+  "waived": [
+   "84"
+  ],
+  "prompt": "Direct no-fluff BaaS service presentation for Zenbase in Coral theme",
+  "date": "2026-11-26"
+ },
+ {
+  "mode": "redesign",
+  "depth": "full",
+  "scope": "page",
+  "shape": "Map / Diagram",
+  "draw": "e788c4",
+  "theme": "Terminal",
+  "axes": "dark/mono/chromatic-green",
+  "hero": "Corridor",
+  "nav": "floating square bar",
+  "footer": "statement",
+  "imagery": "interactive ASCII system map and Zenbase glyph-printed canvas",
+  "photos": [],
+  "entry": "resources/js/pages/welcome.tsx",
+  "fingerprint": "Centred display|Two-column asymmetric|Hairline|Solid|Tightly cropped to the grid|Typewriter",
+  "sections": [
+   "Hero",
+   "Map",
+   "Rows",
+   "Table",
+   "Bento",
+   "Switcher",
+   "Footer"
+  ],
+  "signature": "interactive Zenbase client-to-SQLite system map with glyph-printed phosphor architecture canvas and unified before/after diff",
+  "waived": [
+   "47b",
+   "84"
+  ],
+  "prompt": "Client-facing presentation of Zenbase modular SQLite-isolated BaaS platform in Terminal theme",
+  "date": "2026-11-26"
+ },
+ {
+  "mode": "redesign",
+  "depth": "full",
+  "scope": "page",
+  "shape": "Workbench",
+  "draw": "7fb75b",
+  "theme": "brand",
+  "axes": "light/grotesk-sans/chromatic-emerald",
+  "hero": "Settled",
+  "nav": "three-part bar",
+  "footer": "index columns",
+  "imagery": "product blueprint in hero slot",
+  "photos": [],
+  "entry": "resources/js/pages/welcome.tsx",
+  "fingerprint": "Sticky|Asymmetric spans|Hairline|Solid|None|None",
+  "sections": [
+   "Hero",
+   "Pinned",
+   "Table",
+   "Bento",
+   "Showcase",
+   "Footer"
+  ],
+  "signature": "static Zenbase Core-to-tenant SQLite isolation blueprint beside emerald primary actions",
+  "waived": [
+   "84"
+  ],
+  "prompt": "Modular SQLite-isolated Backend-as-a-Service platform with NoSQL JSON1, OTP auth, storage, PHP Web Functions, and MCP server keeping Zenbase emerald brand",
+  "date": "2026-11-25"
+ },
+ {
+  "mode": "redesign",
+  "depth": "full",
+  "scope": "page",
+  "shape": "Split Studio",
+  "draw": "dee44d",
+  "theme": "cobalt",
+  "axes": "light/grotesk-sans/cool",
+  "hero": "Stage",
+  "nav": "edge-aligned",
+  "footer": "mast",
+  "imagery": "product workbench in hero slot",
+  "photos": [],
+  "entry": "resources/js/pages/welcome.tsx",
+  "fingerprint": "Sticky|Two-column asymmetric|Hairline|Solid|None|None",
+  "sections": [
+   "Hero",
+   "Rows",
+   "Table",
+   "Showcase",
+   "Footer"
+  ],
+  "signature": "interactive 4-module @zenbase/sdk to SQLite JSON1 mapping workbench over Cobalt 8x16 ASCII traffic field",
+  "waived": [],
+  "prompt": "Modular SQLite-isolated Backend-as-a-Service platform for developers with NoSQL collections, OTP auth, file storage, and serverless PHP functions",
+  "date": "2026-11-25"
+ }
+]

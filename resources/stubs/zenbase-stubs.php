@@ -143,6 +143,144 @@ class AuthContext
     }
 }
 
+class MailManager
+{
+    /**
+     * Envoie immédiatement un e-mail depuis une Web Function (max 5/invocation, 10 destinataires, 30/min/app).
+     *
+     * @param  array{
+     *     to: string|array<int, string>,
+     *     subject: string,
+     *     html?: string|null,
+     *     text?: string|null,
+     *     cc?: string|array<int, string>|null,
+     *     bcc?: string|array<int, string>|null,
+     *     reply_to?: string|null,
+     *     from_name?: string|null
+     * }  $options
+     * @return array{sent: bool, queued: bool, to: array<int, string>, cc: array<int, string>, bcc: array<int, string>, subject: string}
+     */
+    public function send(array $options): array
+    {
+        return ['sent' => true, 'queued' => false, 'to' => [], 'cc' => [], 'bcc' => [], 'subject' => ''];
+    }
+
+    /**
+     * Met en file d'attente un e-mail de manière asynchrone depuis une Web Function.
+     *
+     * @param  array{
+     *     to: string|array<int, string>,
+     *     subject: string,
+     *     html?: string|null,
+     *     text?: string|null,
+     *     cc?: string|array<int, string>|null,
+     *     bcc?: string|array<int, string>|null,
+     *     reply_to?: string|null,
+     *     from_name?: string|null
+     * }  $options
+     * @return array{sent: bool, queued: bool, to: array<int, string>, cc: array<int, string>, bcc: array<int, string>, subject: string}
+     */
+    public function queue(array $options): array
+    {
+        return ['sent' => false, 'queued' => true, 'to' => [], 'cc' => [], 'bcc' => [], 'subject' => ''];
+    }
+}
+
+class HttpClient
+{
+    /**
+     * Retourne une nouvelle instance avec des en-têtes HTTP additionnels.
+     *
+     * @param  array<string, string|int|float>  $headers
+     */
+    public function withHeaders(array $headers): self
+    {
+        return $this;
+    }
+
+    /**
+     * Retourne une nouvelle instance avec un en-tête Authorization (Bearer par défaut).
+     */
+    public function withToken(string $token, string $type = 'Bearer'): self
+    {
+        return $this;
+    }
+
+    /**
+     * Retourne une nouvelle instance avec un délai d'attente personnalisé (1 à 4 secondes).
+     */
+    public function timeout(int $seconds): self
+    {
+        return $this;
+    }
+
+    /**
+     * Exécute une requête HTTPS GET sécurisée (anti-SSRF).
+     *
+     * @param  array<string, mixed>  $query
+     * @return array{status: int, ok: bool, body: string, json: mixed, headers: array<string, array<int, string>>}
+     */
+    public function get(string $url, array $query = []): array
+    {
+        return ['status' => 200, 'ok' => true, 'body' => '', 'json' => null, 'headers' => []];
+    }
+
+    /**
+     * Exécute une requête HTTPS POST sécurisée (anti-SSRF).
+     *
+     * @param  array<string, mixed>|string  $data
+     * @return array{status: int, ok: bool, body: string, json: mixed, headers: array<string, array<int, string>>}
+     */
+    public function post(string $url, array|string $data = []): array
+    {
+        return ['status' => 200, 'ok' => true, 'body' => '', 'json' => null, 'headers' => []];
+    }
+
+    /**
+     * Exécute une requête HTTPS PUT sécurisée (anti-SSRF).
+     *
+     * @param  array<string, mixed>|string  $data
+     * @return array{status: int, ok: bool, body: string, json: mixed, headers: array<string, array<int, string>>}
+     */
+    public function put(string $url, array|string $data = []): array
+    {
+        return ['status' => 200, 'ok' => true, 'body' => '', 'json' => null, 'headers' => []];
+    }
+
+    /**
+     * Exécute une requête HTTPS PATCH sécurisée (anti-SSRF).
+     *
+     * @param  array<string, mixed>|string  $data
+     * @return array{status: int, ok: bool, body: string, json: mixed, headers: array<string, array<int, string>>}
+     */
+    public function patch(string $url, array|string $data = []): array
+    {
+        return ['status' => 200, 'ok' => true, 'body' => '', 'json' => null, 'headers' => []];
+    }
+
+    /**
+     * Exécute une requête HTTPS DELETE sécurisée (anti-SSRF).
+     *
+     * @param  array<string, mixed>|string  $data
+     * @return array{status: int, ok: bool, body: string, json: mixed, headers: array<string, array<int, string>>}
+     */
+    public function delete(string $url, array|string $data = []): array
+    {
+        return ['status' => 200, 'ok' => true, 'body' => '', 'json' => null, 'headers' => []];
+    }
+
+    /**
+     * Exécute une requête HTTPS générique sécurisée (GET, POST, PUT, PATCH, DELETE, HEAD).
+     *
+     * @param  array<string, mixed>  $options
+     * @return array{status: int, ok: bool, body: string, json: mixed, headers: array<string, array<int, string>>}
+     */
+    public function request(string $method, string $url, array $options = []): array
+    {
+        return ['status' => 200, 'ok' => true, 'body' => '', 'json' => null, 'headers' => []];
+    }
+}
+
 class Context
 {
     public DatabaseManager $database;
@@ -155,4 +293,8 @@ class Context
     public array $env;
 
     public AuthContext $auth;
+
+    public MailManager $mail;
+
+    public HttpClient $http;
 }

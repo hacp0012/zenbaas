@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AppFile;
 use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Modules\Storage\Services\StorageManagerService;
 use App\Services\TenantManagerService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,22 +23,97 @@ class AdminUserController extends Controller
     ) {}
 
     /**
-     * Display the list of registered clients/developers on Zenbase.
+     * Display the filtered & paginated list of registered clients/developers on Zenbase.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $storageByUser = AppFile::query()
-            ->join('apps', 'app_files.app_id', '=', 'apps.id')
-            ->selectRaw('apps.user_id, COALESCE(SUM(app_files.size), 0) as total_bytes')
-            ->groupBy('apps.user_id')
-            ->pluck('total_bytes', 'user_id');
+        $search = trim((string) $request->query('search', ''));
+        $role = (string) $request->query('role', 'all');
+        $status = (string) $request->query('status', 'all');
+        $sort = (string) $request->query('sort', 'created_at');
+        $direction = strtolower((string) $request->query('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $perPage = (int) $request->query('per_page', 15);
 
-        $users = User::query()
+        if (! in_array($role, ['all', 'client', 'admin'], true)) {
+            $role = 'all';
+        }
+
+        if (! in_array($status, ['all', 'active', 'suspended', 'expired'], true)) {
+            $status = 'all';
+        }
+
+        if (! in_array($sort, ['created_at', 'name', 'apps_count', 'total_api_calls'], true)) {
+            $sort = 'created_at';
+        }
+
+        if (! in_array($perPage, [10, 15, 25, 50], true)) {
+            $perPage = 15;
+        }
+
+        $now = now();
+
+        $query = User::query()
             ->withCount('apps')
-            ->withSum('apps', 'api_calls_count')
-            ->orderByDesc('created_at')
+            ->withSum('apps', 'api_calls_count');
+
+        if ($search !== '') {
+            $like = '%'.mb_strtolower($search).'%';
+            $query->where(function (Builder $q) use ($like): void {
+                $q->whereRaw('LOWER(name) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(email) LIKE ?', [$like]);
+            });
+        }
+
+        if ($role === 'client') {
+            $query->where('is_admin', false);
+        } elseif ($role === 'admin') {
+            $query->where('is_admin', true);
+        }
+
+        if ($status === 'active') {
+            $query->where('is_suspended', false)
+                ->where(function (Builder $q) use ($now): void {
+                    $q->whereNull('expires_at')
+                        ->orWhere('expires_at', '>', $now);
+                });
+        } elseif ($status === 'suspended') {
+            $query->where(function (Builder $q) use ($now): void {
+                $q->where('is_suspended', true)
+                    ->orWhere(function (Builder $expiredQuery) use ($now): void {
+                        $expiredQuery->whereNotNull('expires_at')
+                            ->where('expires_at', '<=', $now);
+                    });
+            });
+        } elseif ($status === 'expired') {
+            $query->whereNotNull('expires_at')
+                ->where('expires_at', '<=', $now);
+        }
+
+        $sortColumn = match ($sort) {
+            'name' => 'name',
+            'apps_count' => 'apps_count',
+            'total_api_calls' => 'apps_sum_api_calls_count',
+            default => 'created_at',
+        };
+
+        $paginator = $query
+            ->orderBy($sortColumn, $direction)
             ->orderByDesc('id')
-            ->get()
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $pageUserIds = $paginator->getCollection()->pluck('id')->all();
+
+        $storageByUser = $pageUserIds === []
+            ? collect()
+            : DB::table('app_files')
+                ->join('apps', 'app_files.app_id', '=', 'apps.id')
+                ->whereIn('apps.user_id', $pageUserIds)
+                ->selectRaw('apps.user_id, COALESCE(SUM(app_files.size), 0) as total_bytes')
+                ->groupBy('apps.user_id')
+                ->pluck('total_bytes', 'user_id');
+
+        $items = $paginator->getCollection()
             ->map(fn (User $user): array => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -49,13 +125,57 @@ class AdminUserController extends Controller
                 'max_storage_mb' => $user->max_storage_mb !== null ? (int) $user->max_storage_mb : null,
                 'used_storage_bytes' => (int) ($storageByUser[$user->id] ?? 0),
                 'expires_at' => $user->expires_at?->toIso8601String(),
-                'apps_count' => $user->apps_count,
+                'apps_count' => (int) $user->apps_count,
                 'total_api_calls' => (int) ($user->apps_sum_api_calls_count ?? 0),
                 'created_at' => $user->created_at?->toIso8601String(),
-            ]);
+            ])
+            ->values()
+            ->all();
+
+        $stats = [
+            'total' => User::query()->count(),
+            'admins' => User::query()->where('is_admin', true)->count(),
+            'active' => User::query()
+                ->where('is_suspended', false)
+                ->where(function (Builder $q) use ($now): void {
+                    $q->whereNull('expires_at')
+                        ->orWhere('expires_at', '>', $now);
+                })
+                ->count(),
+            'suspended' => User::query()
+                ->where(function (Builder $q) use ($now): void {
+                    $q->where('is_suspended', true)
+                        ->orWhere(function (Builder $expiredQuery) use ($now): void {
+                            $expiredQuery->whereNotNull('expires_at')
+                                ->where('expires_at', '<=', $now);
+                        });
+                })
+                ->count(),
+            'expired' => User::query()
+                ->whereNotNull('expires_at')
+                ->where('expires_at', '<=', $now)
+                ->count(),
+        ];
 
         return Inertia::render('admin/users/index', [
-            'users' => $users,
+            'users' => [
+                'items' => $items,
+                'total' => $paginator->total(),
+                'page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'from' => $paginator->firstItem(),
+                'to' => $paginator->lastItem(),
+            ],
+            'stats' => $stats,
+            'filters' => [
+                'search' => $search,
+                'role' => $role,
+                'status' => $status,
+                'sort' => $sort,
+                'direction' => $direction,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 
@@ -147,7 +267,7 @@ class AdminUserController extends Controller
 
         if ($user->isExpired()) {
             $user->is_suspended = true;
-        } elseif ($wasExpired && ! $user->isExpired()) {
+        } elseif ($wasExpired) {
             $user->is_suspended = false;
         }
 

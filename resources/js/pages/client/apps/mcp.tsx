@@ -214,7 +214,7 @@ export default function ClientAppMcp({
                                     }
                                     className={
                                         mcpSettings.enabled
-                                            ? 'bg-emerald-600 text-white'
+                                            ? 'bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300'
                                             : ''
                                     }
                                 >
@@ -444,7 +444,7 @@ export default function ClientAppMcp({
 
                                 <Button
                                     type="submit"
-                                    className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
+                                    className="w-full"
                                     disabled={form.processing}
                                 >
                                     Enregistrer la configuration MCP
@@ -534,12 +534,7 @@ export default function ClientAppMcp({
                                         variant={
                                             activeClient === key
                                                 ? 'default'
-                                                : 'outline'
-                                        }
-                                        className={
-                                            activeClient === key
-                                                ? 'bg-emerald-600 text-white hover:bg-emerald-500'
-                                                : ''
+                                                : 'secondary'
                                         }
                                         onClick={() => setActiveClient(key)}
                                     >

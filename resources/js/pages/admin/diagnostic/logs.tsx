@@ -264,11 +264,8 @@ export default function AdminDiagnosticLogs({
                     <Button
                         type="button"
                         size="sm"
-                        variant={activeTab === 'system' ? 'default' : 'outline'}
-                        className={
-                            activeTab === 'system'
-                                ? 'bg-emerald-600 text-white hover:bg-emerald-500'
-                                : ''
+                        variant={
+                            activeTab === 'system' ? 'default' : 'secondary'
                         }
                         onClick={() => setActiveTab('system')}
                     >
@@ -279,12 +276,7 @@ export default function AdminDiagnosticLogs({
                         type="button"
                         size="sm"
                         variant={
-                            activeTab === 'functions' ? 'default' : 'outline'
-                        }
-                        className={
-                            activeTab === 'functions'
-                                ? 'bg-emerald-600 text-white hover:bg-emerald-500'
-                                : ''
+                            activeTab === 'functions' ? 'default' : 'secondary'
                         }
                         onClick={() => setActiveTab('functions')}
                     >

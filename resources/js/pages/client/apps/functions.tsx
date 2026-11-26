@@ -263,11 +263,7 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                             <Code2 className="mr-1.5 size-3.5" />
                             Stubs IDE
                         </Button>
-                        <Button
-                            asChild
-                            size="sm"
-                            className="bg-emerald-600 text-white hover:bg-emerald-500"
-                        >
+                        <Button asChild size="sm">
                             <Link
                                 href={`/dashboard/apps/${app.id}/functions/editor`}
                             >
@@ -278,9 +274,9 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                     </div>
                 </div>
 
-                {/* Compact Supabase-style KPI Strip */}
+                {/* Compact KPI Strip */}
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-lg border bg-card px-4 py-3">
+                    <div className="rounded-xl bg-card px-4 py-3 shadow-xs">
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span>Fonctions actives</span>
                             <Cpu className="size-3.5 text-emerald-500" />
@@ -295,7 +291,7 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                         </div>
                     </div>
 
-                    <div className="rounded-lg border bg-card px-4 py-3">
+                    <div className="rounded-xl bg-card px-4 py-3 shadow-xs">
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span>Invocations enregistrées</span>
                             <Activity className="size-3.5 text-blue-500" />
@@ -310,7 +306,7 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                         </div>
                     </div>
 
-                    <div className="rounded-lg border bg-card px-4 py-3">
+                    <div className="rounded-xl bg-card px-4 py-3 shadow-xs">
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span>Latence moyenne</span>
                             <Clock className="size-3.5 text-purple-500" />
@@ -325,7 +321,7 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                         </div>
                     </div>
 
-                    <div className="rounded-lg border bg-card px-4 py-3">
+                    <div className="rounded-xl bg-card px-4 py-3 shadow-xs">
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span>Secrets globaux (.env)</span>
                             <SlidersHorizontal className="size-3.5 text-amber-500" />
@@ -336,7 +332,7 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                             </span>
                             <Link
                                 href={`/dashboard/apps/${app.id}/functions/env`}
-                                className="text-xs font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                                className="text-xs font-medium text-foreground hover:underline"
                             >
                                 Configurer →
                             </Link>
@@ -344,10 +340,10 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                     </div>
                 </div>
 
-                {/* Main Supabase-style Functions Table Container */}
-                <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+                {/* Main Functions Table Container */}
+                <div className="overflow-hidden rounded-xl bg-card shadow-xs">
                     {/* Search & Filter Toolbar */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/20 px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/20 px-4 py-3">
                         <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
                             <Search className="pointer-events-none absolute top-2 left-2.5 size-3.5 text-muted-foreground" />
                             <Input
@@ -358,7 +354,7 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                             />
                         </div>
 
-                        <div className="inline-flex rounded-lg border bg-background p-0.5 text-xs">
+                        <div className="inline-flex rounded-lg bg-muted p-0.5 text-xs">
                             {(
                                 [
                                     ['all', `Toutes (${functions.length})`],
@@ -375,7 +371,7 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                                     onClick={() => setStatusFilter(value)}
                                     className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                                         statusFilter === value
-                                            ? 'bg-emerald-600 text-white'
+                                            ? 'bg-primary text-primary-foreground shadow-2xs'
                                             : 'text-muted-foreground hover:text-foreground'
                                     }`}
                                 >
@@ -387,7 +383,7 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
 
                     {functions.length === 0 ? (
                         <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-                            <div className="flex size-12 items-center justify-center rounded-full border bg-muted/40">
+                            <div className="flex size-12 items-center justify-center rounded-full bg-muted/60">
                                 <TerminalSquare className="size-6 text-muted-foreground" />
                             </div>
                             <h3 className="mt-4 text-base font-semibold">
@@ -400,11 +396,7 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                                 <code className="font-mono">.php</code>.
                             </p>
                             <div className="mt-5 flex flex-wrap justify-center gap-2">
-                                <Button
-                                    asChild
-                                    size="sm"
-                                    className="bg-emerald-600 text-white hover:bg-emerald-500"
-                                >
+                                <Button asChild size="sm">
                                     <Link
                                         href={`/dashboard/apps/${app.id}/functions/editor`}
                                     >
@@ -722,10 +714,7 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                         >
                             Fermer
                         </Button>
-                        <Button
-                            asChild
-                            className="bg-emerald-600 text-white hover:bg-emerald-500"
-                        >
+                        <Button asChild>
                             <a
                                 href="/dashboard/stubs/zenbase-stubs.php"
                                 download
@@ -830,7 +819,6 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                             </Button>
                             <Button
                                 type="submit"
-                                className="bg-emerald-600 text-white hover:bg-emerald-500"
                                 disabled={uploadForm.processing}
                             >
                                 Importer et ouvrir dans l&apos;IDE

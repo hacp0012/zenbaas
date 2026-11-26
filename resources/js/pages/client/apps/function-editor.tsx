@@ -69,6 +69,14 @@ const QUICK_PHP_SNIPPETS = [
         label: 'Auth: Vérifier',
         code: `\n    if (! $context->auth->check()) {\n        return ['status' => 401, 'data' => ['error' => 'Authentification requise']];\n    }\n`,
     },
+    {
+        label: 'Mail: Envoyer',
+        code: `\n    $mailResult = $context->mail->send([\n        'to' => $event['payload']['email'] ?? 'client@exemple.com',\n        'subject' => 'Notification Zenbase',\n        'html' => '<p>Bonjour depuis votre Web Function !</p>',\n    ]);\n`,
+    },
+    {
+        label: 'HTTP: POST HTTPS',
+        code: `\n    $httpResponse = $context->http\n        ->withToken($context->env['API_TOKEN'] ?? '')\n        ->post('https://api.exemple.com/v1/events', [\n            'event' => 'ping',\n        ]);\n`,
+    },
 ];
 
 function formatDateTime(iso: string | null | undefined): string {
@@ -223,12 +231,12 @@ export default function ClientAppFunctionEditor({
             <Head
                 title={`${app.name} — IDE Edge Function (${activeFunction?.name ?? 'Nouvelle Fonction'})`}
             />
-            <div className="space-y-4">
-                {/* Supabase-style Function Detail Header */}
-                <div className="rounded-xl border bg-card px-4 py-3.5 shadow-xs">
+            <div className="flex flex-1 flex-col gap-4">
+                {/* Function Detail Header */}
+                <div className="rounded-xl bg-card px-4 py-3.5 shadow-xs">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-3">
-                            <Button asChild size="sm" variant="outline">
+                            <Button asChild size="sm" variant="secondary">
                                 <Link
                                     href={`/dashboard/apps/${app.id}/functions`}
                                 >
@@ -245,10 +253,10 @@ export default function ClientAppFunctionEditor({
                                             : 'nouvelle-fonction'}
                                     </h2>
                                     <span
-                                        className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                                        className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${
                                             fnActive
-                                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                                : 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300'
+                                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                                : 'bg-red-500/15 text-red-700 dark:text-red-300'
                                         }`}
                                     >
                                         <span
@@ -297,7 +305,7 @@ export default function ClientAppFunctionEditor({
                                         }
                                     }}
                                     aria-label="Changer de fonction PHP"
-                                    className="h-8 rounded-md border bg-background px-2.5 font-mono text-xs"
+                                    className="h-8 rounded-md bg-muted/60 px-2.5 font-mono text-xs"
                                 >
                                     <option value="">
                                         + Nouvelle fonction...
@@ -310,7 +318,7 @@ export default function ClientAppFunctionEditor({
                                 </select>
                             )}
 
-                            <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium hover:bg-muted">
+                            <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-secondary px-2.5 text-xs font-medium text-secondary-foreground hover:bg-secondary/80">
                                 <FileUp className="size-3.5 text-emerald-600" />
                                 <span>Charger .php</span>
                                 <input
@@ -322,7 +330,7 @@ export default function ClientAppFunctionEditor({
                             </label>
 
                             {activeFunction && (
-                                <Button asChild size="sm" variant="outline">
+                                <Button asChild size="sm" variant="secondary">
                                     <a
                                         href={`/dashboard/apps/${app.id}/functions/${activeFunction.id}/download`}
                                         download
@@ -333,7 +341,7 @@ export default function ClientAppFunctionEditor({
                                 </Button>
                             )}
 
-                            <Button asChild size="sm" variant="outline">
+                            <Button asChild size="sm" variant="secondary">
                                 <Link
                                     href={`/dashboard/apps/${app.id}/functions/env`}
                                 >
@@ -345,7 +353,7 @@ export default function ClientAppFunctionEditor({
                     </div>
 
                     {/* Endpoint bar */}
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-1.5 text-xs">
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/40 px-3 py-1.5 text-xs">
                         <div className="flex min-w-0 items-center gap-2">
                             <Badge
                                 variant="secondary"
@@ -378,21 +386,21 @@ export default function ClientAppFunctionEditor({
                 </div>
 
                 {(errors?.code || errors?.name) && (
-                    <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-xs font-medium text-red-700 dark:text-red-300">
+                    <div className="rounded-xl bg-red-500/10 px-4 py-3 text-xs font-medium text-red-700 dark:text-red-300">
                         {errors.code || errors.name}
                     </div>
                 )}
 
-                {/* Supabase-style Split IDE & Inspector Workspace */}
-                <div className="grid gap-5 lg:grid-cols-12">
+                {/* Split IDE & Inspector Workspace */}
+                <div className="grid flex-1 gap-5 lg:grid-cols-12">
                     {/* Main Code Editor Column */}
-                    <div className="lg:col-span-8">
+                    <div className="flex flex-col lg:col-span-8">
                         <form
                             onSubmit={handleSaveFunction}
-                            className="overflow-hidden rounded-xl border bg-card shadow-xs"
+                            className="flex h-full flex-1 flex-col overflow-hidden rounded-xl bg-card shadow-xs"
                         >
                             {/* Metadata Strip */}
-                            <div className="grid gap-3 border-b bg-muted/20 p-4 sm:grid-cols-12">
+                            <div className="grid gap-3 bg-muted/25 p-4 sm:grid-cols-12">
                                 <div className="space-y-1 sm:col-span-4">
                                     <Label
                                         htmlFor="ide-fn-name"
@@ -429,7 +437,7 @@ export default function ClientAppFunctionEditor({
                                     />
                                 </div>
                                 <div className="flex items-end sm:col-span-2">
-                                    <label className="flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border bg-background px-2 text-xs">
+                                    <label className="flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-background px-2 text-xs shadow-2xs">
                                         <input
                                             type="checkbox"
                                             checked={fnActive}
@@ -444,7 +452,7 @@ export default function ClientAppFunctionEditor({
                             </div>
 
                             {/* Snippets Bar */}
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/15 px-4 py-2">
                                 <div className="flex flex-wrap items-center gap-1.5">
                                     <span className="mr-1 flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
                                         <Sparkles className="size-3 text-emerald-600" />
@@ -464,7 +472,7 @@ export default function ClientAppFunctionEditor({
                                                         : `${prev}\n${snip.code}`,
                                                 )
                                             }
-                                            className="rounded-md border bg-background px-2 py-0.5 font-mono text-[10px] hover:border-emerald-500/50 hover:text-emerald-600"
+                                            className="rounded-md bg-muted/60 px-2 py-0.5 font-mono text-[10px] transition hover:bg-muted hover:text-foreground"
                                         >
                                             + {snip.label}
                                         </button>
@@ -475,19 +483,20 @@ export default function ClientAppFunctionEditor({
                                 </span>
                             </div>
 
-                            {/* Monaco PHP Editor */}
-                            <div className="p-3">
+                            {/* Edge-to-Edge Monaco PHP Editor */}
+                            <div className="min-h-[480px] flex-1">
                                 <MonacoCodeEditor
                                     value={fnCode}
                                     onChange={setFnCode}
                                     language="php"
-                                    height={480}
+                                    height="100%"
+                                    edgeToEdge
                                     envKeys={allEnvKeys}
                                 />
                             </div>
 
                             {/* Editor Footer Action Bar */}
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/20 px-4 py-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/25 px-4 py-3">
                                 <div className="text-[11px] text-muted-foreground">
                                     Autocomplétion active sur{' '}
                                     <code className="rounded bg-muted px-1 font-mono">
@@ -514,11 +523,7 @@ export default function ClientAppFunctionEditor({
                                             Supprimer
                                         </Button>
                                     )}
-                                    <Button
-                                        type="submit"
-                                        size="sm"
-                                        className="bg-emerald-600 text-white hover:bg-emerald-500"
-                                    >
+                                    <Button type="submit" size="sm">
                                         <Save className="mr-1.5 size-3.5" />
                                         {isEditingExisting
                                             ? 'Déployer les modifications'
@@ -529,10 +534,10 @@ export default function ClientAppFunctionEditor({
                         </form>
                     </div>
 
-                    {/* Right Column: Supabase-style Tabbed Inspector (Test / Logs / Secrets) */}
-                    <div className="lg:col-span-4">
-                        <div className="flex h-full flex-col overflow-hidden rounded-xl border bg-card shadow-xs">
-                            <div className="grid grid-cols-3 border-b bg-muted/30 p-1 text-xs">
+                    {/* Right Column: Tabbed Inspector (Test / Logs / Secrets) */}
+                    <div className="flex flex-col lg:col-span-4">
+                        <div className="flex h-full flex-1 flex-col overflow-hidden rounded-xl bg-card shadow-xs">
+                            <div className="grid grid-cols-3 bg-muted/30 p-1 text-xs">
                                 <button
                                     type="button"
                                     onClick={() => setRightTab('test')}
@@ -592,7 +597,7 @@ export default function ClientAppFunctionEditor({
                                         <Button
                                             type="button"
                                             size="sm"
-                                            className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
+                                            className="w-full"
                                             disabled={!activeFunction}
                                             onClick={
                                                 handleInvokeCurrentFunction
@@ -608,7 +613,7 @@ export default function ClientAppFunctionEditor({
                                             activeFunction &&
                                             flash.functionResult.function_id ===
                                                 activeFunction.id && (
-                                                <div className="space-y-2 border-t pt-3">
+                                                <div className="space-y-2 pt-3">
                                                     <div className="flex items-center justify-between text-xs">
                                                         <Badge
                                                             variant={
@@ -674,7 +679,7 @@ export default function ClientAppFunctionEditor({
                                                     (log, idx) => (
                                                         <div
                                                             key={idx}
-                                                            className="rounded-lg border p-2.5"
+                                                            className="rounded-lg bg-muted/35 p-2.5"
                                                         >
                                                             <div className="flex items-center justify-between gap-2">
                                                                 <Badge
@@ -702,7 +707,7 @@ export default function ClientAppFunctionEditor({
                                                                     )}
                                                                 </div>
                                                             )}
-                                                            <div className="mt-1.5 rounded bg-muted/40 p-1.5 font-mono text-[11px] break-all text-muted-foreground">
+                                                            <div className="mt-1.5 rounded bg-muted/50 p-1.5 font-mono text-[11px] break-all text-muted-foreground">
                                                                 {log.error ||
                                                                     log.output ||
                                                                     'OK'}
@@ -733,7 +738,7 @@ export default function ClientAppFunctionEditor({
                                         </div>
 
                                         {allEnvKeys.length === 0 ? (
-                                            <div className="rounded-lg border border-dashed py-10 text-center text-xs text-muted-foreground">
+                                            <div className="rounded-lg bg-muted/35 py-10 text-center text-xs text-muted-foreground">
                                                 Aucune variable
                                                 d&apos;environnement configurée.
                                             </div>
@@ -742,7 +747,7 @@ export default function ClientAppFunctionEditor({
                                                 {allEnvKeys.map((key) => (
                                                     <div
                                                         key={key}
-                                                        className="flex items-center justify-between rounded-md border bg-muted/20 px-2.5 py-2 font-mono text-[11px]"
+                                                        className="flex items-center justify-between rounded-md bg-muted/35 px-2.5 py-2 font-mono text-[11px]"
                                                     >
                                                         <span className="truncate font-medium">
                                                             {key}

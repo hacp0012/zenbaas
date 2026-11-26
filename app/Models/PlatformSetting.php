@@ -34,6 +34,11 @@ class PlatformSetting extends Model
      *     default_functions_rate_limit: int,
      *     default_storage_rate_limit: int,
      *     default_mcp_rate_limit: int,
+     *     default_function_mail_per_minute: int,
+     *     default_function_mail_per_invocation: int,
+     *     default_function_mail_max_recipients: int,
+     *     default_function_http_per_invocation: int,
+     *     default_function_http_timeout_seconds: int,
      *     global_max_storage_mb: int|null
      * }
      */
@@ -50,6 +55,11 @@ class PlatformSetting extends Model
             'default_functions_rate_limit' => 60,
             'default_storage_rate_limit' => 60,
             'default_mcp_rate_limit' => 120,
+            'default_function_mail_per_minute' => 30,
+            'default_function_mail_per_invocation' => 5,
+            'default_function_mail_max_recipients' => 10,
+            'default_function_http_per_invocation' => 5,
+            'default_function_http_timeout_seconds' => 3,
             'global_max_storage_mb' => null,
         ];
     }
@@ -68,6 +78,11 @@ class PlatformSetting extends Model
      *     default_functions_rate_limit: int,
      *     default_storage_rate_limit: int,
      *     default_mcp_rate_limit: int,
+     *     default_function_mail_per_minute: int,
+     *     default_function_mail_per_invocation: int,
+     *     default_function_mail_max_recipients: int,
+     *     default_function_http_per_invocation: int,
+     *     default_function_http_timeout_seconds: int,
      *     global_max_storage_mb: int|null
      * }
      */
@@ -104,6 +119,11 @@ class PlatformSetting extends Model
                 'default_functions_rate_limit' => max(5, min(5000, (int) ($stored['default_functions_rate_limit'] ?? $defaults['default_functions_rate_limit']))),
                 'default_storage_rate_limit' => max(5, min(2000, (int) ($stored['default_storage_rate_limit'] ?? $defaults['default_storage_rate_limit']))),
                 'default_mcp_rate_limit' => max(10, min(5000, (int) ($stored['default_mcp_rate_limit'] ?? $defaults['default_mcp_rate_limit']))),
+                'default_function_mail_per_minute' => max(1, min(500, (int) ($stored['default_function_mail_per_minute'] ?? $defaults['default_function_mail_per_minute']))),
+                'default_function_mail_per_invocation' => max(1, min(25, (int) ($stored['default_function_mail_per_invocation'] ?? $defaults['default_function_mail_per_invocation']))),
+                'default_function_mail_max_recipients' => max(1, min(50, (int) ($stored['default_function_mail_max_recipients'] ?? $defaults['default_function_mail_max_recipients']))),
+                'default_function_http_per_invocation' => max(1, min(25, (int) ($stored['default_function_http_per_invocation'] ?? $defaults['default_function_http_per_invocation']))),
+                'default_function_http_timeout_seconds' => max(1, min(4, (int) ($stored['default_function_http_timeout_seconds'] ?? $defaults['default_function_http_timeout_seconds']))),
                 'global_max_storage_mb' => array_key_exists('global_max_storage_mb', $stored)
                     ? ($stored['global_max_storage_mb'] !== null ? max(10, (int) $stored['global_max_storage_mb']) : null)
                     : $defaults['global_max_storage_mb'],
@@ -128,6 +148,11 @@ class PlatformSetting extends Model
      *     default_functions_rate_limit: int,
      *     default_storage_rate_limit: int,
      *     default_mcp_rate_limit: int,
+     *     default_function_mail_per_minute: int,
+     *     default_function_mail_per_invocation: int,
+     *     default_function_mail_max_recipients: int,
+     *     default_function_http_per_invocation: int,
+     *     default_function_http_timeout_seconds: int,
      *     global_max_storage_mb: int|null
      * }
      */

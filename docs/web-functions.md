@@ -123,12 +123,14 @@ Toute sortie écrite sur `stdout` (via `echo` ou `print`) pendant l'exécution e
 
 ## 5. Référence de l'objet `$context`
 
-Le second argument `$context` est une instance de `ZenbaseFunctionContext` exposant 4 propriétés isolées pour l'application courante :
+Le second argument `$context` est une instance de `ZenbaseFunctionContext` exposant 6 propriétés isolées pour l'application courante :
 
 - `$context->database` — Moteur NoSQL SQLite JSON1 (`NoSqlDatabaseEngine`)
 - `$context->storage` — Gestionnaire de fichiers isolé de l'application
 - `$context->auth` — Contexte de l'utilisateur final authentifié
 - `$context->env` — Variables d'environnement secrètes fusionnées
+- `$context->mail` — Envoi d'e-mails sécurisé et limité en débit (`FunctionMailService`)
+- `$context->http` — Client HTTPS sortant protégé contre le SSRF (`FunctionHttpClient`)
 
 ### A. Base de données NoSQL (`$context->database`)
 
@@ -274,6 +276,81 @@ $mode = $context->env['APP_ENV'] ?? 'production';
 - **Convention de nommage** : seules les clés correspondant à `^[a-zA-Z_][a-zA-Z0-9_]*$` sont enregistrées.
 - **Confidentialité** : les variables d'environnement et le code source des fonctions ne sont jamais renvoyés par `GET /api/v1/functions`.
 
+### E. Envoi d'e-mails sécurisé (`$context->mail`)
+
+`$context->mail` permet d'envoyer des e-mails transactionnels depuis vos Web Functions via le mailer configuré sur Zenbase, avec validation stricte anti-injection d'en-têtes et protection anti-spam :
+
+| Méthode | Signature | Retour | Description |
+| :--- | :--- | :--- | :--- |
+| `send` | `send(array $options)` | `array{sent: bool, queued: bool, to: string[], cc: string[], bcc: string[], subject: string}` | Envoie l'e-mail immédiatement. |
+| `queue` | `queue(array $options)` | `array{sent: bool, queued: bool, to: string[], cc: string[], bcc: string[], subject: string}` | Met l'e-mail en file d'attente de manière asynchrone (recommandé pour ne pas ralentir l'invocation si le serveur SMTP est lent). |
+
+#### Options acceptées dans `$options`
+
+| Clé | Type | Requis | Description |
+| :--- | :--- | :---: | :--- |
+| `to` | `string\|string[]` | Oui | Une ou plusieurs adresses e-mail destinataires valides. |
+| `subject` | `string` | Oui | Objet de l'e-mail (max `200` caractères, retours à la ligne interdits). |
+| `html` | `string\|null` | Conditionnel | Corps HTML (max `100 Ko`). Au moins `html` ou `text` doit être fourni. |
+| `text` | `string\|null` | Conditionnel | Corps texte brut (max `100 Ko`). Peut être combiné avec `html`. |
+| `cc` | `string\|string[]\|null` | Non | Destinataires en copie. |
+| `bcc` | `string\|string[]\|null` | Non | Destinataires en copie cachée. |
+| `reply_to` | `string\|null` | Non | Adresse e-mail de réponse (`Reply-To`). |
+| `from_name` | `string\|null` | Non | Nom d'expéditeur affiché (max `80` caractères, par défaut le nom de l'application ; l'adresse `From` reste celle configurée sur la plateforme). |
+
+```php
+$result = $context->mail->queue([
+    'to' => $event['payload']['email'],
+    'reply_to' => 'support@mon-app.com',
+    'subject' => 'Confirmation de votre inscription',
+    'html' => '<h1>Bienvenue !</h1><p>Votre compte est prêt.</p>',
+    'text' => 'Bienvenue ! Votre compte est prêt.',
+]);
+```
+
+**Garde-fous intégrés :**
+- Maximum **5 e-mails** par invocation de fonction.
+- Maximum **10 destinataires** cumulés (`to` + `cc` + `bcc`) par e-mail.
+- Plafond de **30 e-mails / minute** par application (`RateLimiter`).
+- Rejet systématique des caractères `\r` / `\n` dans les adresses, `subject` et `from_name` (protection contre l'injection d'en-têtes SMTP).
+
+### F. Client HTTPS sortant anti-SSRF (`$context->http`)
+
+`$context->http` permet d'appeler des APIs externes en HTTPS (Resend, Brevo, Stripe, Slack, Discord, webhooks tiers…) tout en protégeant l'infrastructure serveur contre les attaques **SSRF** (*Server-Side Request Forgery*) :
+
+| Méthode | Signature | Description |
+| :--- | :--- | :--- |
+| `withHeaders` | `withHeaders(array $headers): self` | Retourne une nouvelle instance clonée avec des en-têtes HTTP additionnels (`Host` interdit). |
+| `withToken` | `withToken(string $token, string $type = 'Bearer'): self` | Retourne une nouvelle instance clonée avec l'en-tête `Authorization: <type> <token>`. |
+| `timeout` | `timeout(int $seconds): self` | Définit le délai maximal en secondes (borné entre `1` et `4` secondes). |
+| `get` | `get(string $url, array $query = []): array` | Requête HTTPS `GET`. |
+| `post` | `post(string $url, array\|string $data = []): array` | Requête HTTPS `POST` (encode automatiquement en JSON si `$data` est un tableau). |
+| `put` | `put(string $url, array\|string $data = []): array` | Requête HTTPS `PUT`. |
+| `patch` | `patch(string $url, array\|string $data = []): array` | Requête HTTPS `PATCH`. |
+| `delete` | `delete(string $url, array\|string $data = []): array` | Requête HTTPS `DELETE`. |
+| `request` | `request(string $method, string $url, array $options = []): array` | Requête générique (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`). |
+
+**Structure retournée par chaque requête :**
+
+```php
+[
+    'status' => 200,      // Code HTTP entier
+    'ok' => true,         // true si status 2xx
+    'body' => '{"id":1}', // Corps brut (plafonné à 512 Ko)
+    'json' => ['id' => 1],// Tableau décodé si JSON valide, sinon null
+    'headers' => [        // En-têtes de réponse normalisés en minuscules
+        'content-type' => ['application/json'],
+    ],
+]
+```
+
+**Protections anti-SSRF strictes :**
+- **HTTPS uniquement** sur le **port 443** (`http://`, ports personnalisés et identifiants `user:pass@` bloqués).
+- **Hôtes internes bloqués** : `localhost`, `*.localhost`, `*.local`, `*.internal`, `*.home.arpa`, `metadata.google.internal`, etc.
+- **Validation IP & DNS** : rejette toute IP privée, loopback, link-local, CGNAT (`100.64.0.0/10`), métadonnées cloud (`169.254.169.254`), IPv6 locale (`::1`, `::ffff:127.0.0.1`), y compris après résolution DNS (anti DNS-rebinding).
+- **Redirections HTTP désactivées** (`withoutRedirecting`) pour empêcher tout contournement vers une cible interne.
+- **Quotas** : maximum **5 requêtes HTTP** par invocation, timeout de `1` à `4` secondes, réponse plafonnée à **512 Ko**.
+
 ---
 
 ## 6. Stubs IDE (`zenbase-stubs.php`) et développement local
@@ -340,15 +417,17 @@ return function ($event, $context) {
 
 ### D. Classes déclarées dans `zenbase-stubs.php`
 
-Le fichier `zenbase-stubs.php` déclare les 5 classes suivantes sous le namespace `Zenbase` :
+Le fichier `zenbase-stubs.php` déclare les 7 classes suivantes sous le namespace `Zenbase` :
 
 | Classe Stub | Propriété / Rôle | Méthodes & Propriétés exposées |
 | :--- | :--- | :--- |
-| `Zenbase\Context` | Objet `$context` injecté | `$database`, `$storage`, `$env`, `$auth` |
+| `Zenbase\Context` | Objet `$context` injecté | `$database`, `$storage`, `$env`, `$auth`, `$mail`, `$http` |
 | `Zenbase\DatabaseManager` | `$context->database` | `collection(string $name)`, `listCollections()` |
 | `Zenbase\CollectionQueryBuilder` | Retour de `collection()` | `where()`, `orderBy()`, `limit()`, `offset()`, `get()`, `find()`, `create()`, `update()`, `delete()` |
 | `Zenbase\StorageManager` | `$context->storage` | `upload()`, `put()`, `list()`, `delete()` |
 | `Zenbase\AuthContext` | `$context->auth` | `check()`, `user()`, `id()`, `email()` |
+| `Zenbase\MailManager` | `$context->mail` | `send(array $options)`, `queue(array $options)` |
+| `Zenbase\HttpClient` | `$context->http` | `withHeaders()`, `withToken()`, `timeout()`, `get()`, `post()`, `put()`, `patch()`, `delete()`, `request()` |
 
 ### E. Contenu complet de `zenbase-stubs.php`
 
@@ -500,6 +579,120 @@ class AuthContext
     }
 }
 
+class MailManager
+{
+    /**
+     * @param  array{
+     *     to: string|array<int, string>,
+     *     subject: string,
+     *     html?: string|null,
+     *     text?: string|null,
+     *     cc?: string|array<int, string>|null,
+     *     bcc?: string|array<int, string>|null,
+     *     reply_to?: string|null,
+     *     from_name?: string|null
+     * }  $options
+     * @return array{sent: bool, queued: bool, to: array<int, string>, cc: array<int, string>, bcc: array<int, string>, subject: string}
+     */
+    public function send(array $options): array
+    {
+        return ['sent' => true, 'queued' => false, 'to' => [], 'cc' => [], 'bcc' => [], 'subject' => ''];
+    }
+
+    /**
+     * @param  array{
+     *     to: string|array<int, string>,
+     *     subject: string,
+     *     html?: string|null,
+     *     text?: string|null,
+     *     cc?: string|array<int, string>|null,
+     *     bcc?: string|array<int, string>|null,
+     *     reply_to?: string|null,
+     *     from_name?: string|null
+     * }  $options
+     * @return array{sent: bool, queued: bool, to: array<int, string>, cc: array<int, string>, bcc: array<int, string>, subject: string}
+     */
+    public function queue(array $options): array
+    {
+        return ['sent' => false, 'queued' => true, 'to' => [], 'cc' => [], 'bcc' => [], 'subject' => ''];
+    }
+}
+
+class HttpClient
+{
+    /**
+     * @param  array<string, string|int|float>  $headers
+     */
+    public function withHeaders(array $headers): self
+    {
+        return $this;
+    }
+
+    public function withToken(string $token, string $type = 'Bearer'): self
+    {
+        return $this;
+    }
+
+    public function timeout(int $seconds): self
+    {
+        return $this;
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     * @return array{status: int, ok: bool, body: string, json: mixed, headers: array<string, array<int, string>>}
+     */
+    public function get(string $url, array $query = []): array
+    {
+        return ['status' => 200, 'ok' => true, 'body' => '', 'json' => null, 'headers' => []];
+    }
+
+    /**
+     * @param  array<string, mixed>|string  $data
+     * @return array{status: int, ok: bool, body: string, json: mixed, headers: array<string, array<int, string>>}
+     */
+    public function post(string $url, array|string $data = []): array
+    {
+        return ['status' => 200, 'ok' => true, 'body' => '', 'json' => null, 'headers' => []];
+    }
+
+    /**
+     * @param  array<string, mixed>|string  $data
+     * @return array{status: int, ok: bool, body: string, json: mixed, headers: array<string, array<int, string>>}
+     */
+    public function put(string $url, array|string $data = []): array
+    {
+        return ['status' => 200, 'ok' => true, 'body' => '', 'json' => null, 'headers' => []];
+    }
+
+    /**
+     * @param  array<string, mixed>|string  $data
+     * @return array{status: int, ok: bool, body: string, json: mixed, headers: array<string, array<int, string>>}
+     */
+    public function patch(string $url, array|string $data = []): array
+    {
+        return ['status' => 200, 'ok' => true, 'body' => '', 'json' => null, 'headers' => []];
+    }
+
+    /**
+     * @param  array<string, mixed>|string  $data
+     * @return array{status: int, ok: bool, body: string, json: mixed, headers: array<string, array<int, string>>}
+     */
+    public function delete(string $url, array|string $data = []): array
+    {
+        return ['status' => 200, 'ok' => true, 'body' => '', 'json' => null, 'headers' => []];
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @return array{status: int, ok: bool, body: string, json: mixed, headers: array<string, array<int, string>>}
+     */
+    public function request(string $method, string $url, array $options = []): array
+    {
+        return ['status' => 200, 'ok' => true, 'body' => '', 'json' => null, 'headers' => []];
+    }
+}
+
 class Context
 {
     public DatabaseManager $database;
@@ -512,6 +705,10 @@ class Context
     public array $env;
 
     public AuthContext $auth;
+
+    public MailManager $mail;
+
+    public HttpClient $http;
 }
 ```
 
@@ -540,7 +737,7 @@ Afin de garantir l'isolation stricte entre les applications et la sécurité du 
 | **Sockets & cURL bas niveau** | `fsockopen`, `pfsockopen`, `stream_socket_client`, `stream_socket_server`, `curl_exec`, `curl_multi_exec` |
 | **Configuration & environnement serveur** | `phpinfo`, `getenv`, `putenv`, `ini_set`, `ini_alter`, `apache_setenv` |
 
-> Pour lire/écrire des fichiers ou consulter des secrets, utilisez exclusivement les APIs isolées **`$context->storage`** et **`$context->env`**.
+> Pour lire/écrire des fichiers, consulter des secrets, envoyer des e-mails ou effectuer des appels HTTPS externes, utilisez exclusivement les APIs isolées **`$context->storage`**, **`$context->env`**, **`$context->mail`** et **`$context->http`**.
 
 ### B. Limites techniques
 
@@ -721,6 +918,46 @@ return function ($event, $context) {
     return [
         'status' => 200,
         'data' => ['received' => true, 'event_id' => $log['id']],
+    ];
+};
+```
+
+### D. Envoyer un e-mail transactionnel (`$context->mail`) ou appeler une API externe (`$context->http`)
+
+```php
+<?php
+
+return function ($event, $context) {
+    /** @var \Zenbase\Context $context */
+
+    $email = trim((string) ($event['payload']['email'] ?? ''));
+    $name = trim((string) ($event['payload']['name'] ?? 'Client'));
+
+    // Option 1 : envoi natif via le mailer Zenbase (asynchrone via queue)
+    $mail = $context->mail->queue([
+        'to' => $email,
+        'subject' => "Bienvenue {$name} !",
+        'html' => "<h1>Bonjour {$name}</h1><p>Votre compte est désormais actif.</p>",
+        'text' => "Bonjour {$name}, votre compte est désormais actif.",
+    ]);
+
+    // Option 2 : appel HTTPS sécurisé vers une API tierce (ex. Slack / Resend)
+    $slackWebhook = $context->env['SLACK_WEBHOOK_URL'] ?? '';
+    $notified = false;
+
+    if ($slackWebhook !== '') {
+        $res = $context->http->timeout(3)->post($slackWebhook, [
+            'text' => "Nouvelle inscription : {$name} ({$email})",
+        ]);
+        $notified = $res['ok'];
+    }
+
+    return [
+        'status' => 200,
+        'data' => [
+            'mail' => $mail,
+            'slack_notified' => $notified,
+        ],
     ];
 };
 ```

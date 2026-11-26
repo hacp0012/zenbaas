@@ -15,7 +15,6 @@ import {
     Settings2,
     ShieldCheck,
     SlidersHorizontal,
-    Sparkles,
     Trash2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -23,6 +22,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog';
 import { MonacoCodeEditor } from '@/components/monaco-code-editor';
 import { PrismCodeBlock } from '@/components/prism-code-block';
+import { ResizableJsonEditor } from '@/components/resizable-json-editor';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -77,6 +77,12 @@ type GuiFieldRow = {
     required?: boolean;
 };
 
+function isComplexJsonFieldType(
+    type: string,
+): type is 'array' | 'object' | 'map' {
+    return type === 'array' || type === 'object' || type === 'map';
+}
+
 function isBlobObject(val: unknown): val is {
     __type: 'blob';
     mime_type: string;
@@ -130,11 +136,15 @@ function objectToGuiFields(
                 key: sf.name,
                 type: sf.type,
                 stringValue:
-                    sf.type === 'string' && rawVal !== undefined && rawVal !== null
+                    sf.type === 'string' &&
+                    rawVal !== undefined &&
+                    rawVal !== null
                         ? String(rawVal)
                         : '',
                 numberValue:
-                    sf.type === 'number' && rawVal !== undefined && rawVal !== null
+                    sf.type === 'number' &&
+                    rawVal !== undefined &&
+                    rawVal !== null
                         ? String(rawVal)
                         : '0',
                 booleanValue:
@@ -354,6 +364,7 @@ export default function ClientAppDatabase({
     );
     const [editorMode, setEditorMode] = useState<'gui' | 'json'>('gui');
     const [customDocId, setCustomDocId] = useState('');
+    const [guiJsonError, setGuiJsonError] = useState<string | null>(null);
 
     const selectedRecord = useMemo(
         () =>
@@ -394,6 +405,7 @@ export default function ClientAppDatabase({
 
     function selectRecordForInspection(record: Record<string, unknown>) {
         setIsCreatingDoc(false);
+        setGuiJsonError(null);
         setSelectedRecordId(String(record.id));
         const payload = (record.data as Record<string, unknown>) ?? {};
         setJsonContent(JSON.stringify(payload, null, 2));
@@ -402,6 +414,7 @@ export default function ClientAppDatabase({
 
     function openCreateDocDrawer() {
         setIsCreatingDoc(true);
+        setGuiJsonError(null);
         setSelectedRecordId(null);
         setCustomDocId('');
         const initialObj = buildDefaultJsonFromSchema(schemaFields);
@@ -413,6 +426,7 @@ export default function ClientAppDatabase({
         if (nextMode === editorMode) {
             return;
         }
+        setGuiJsonError(null);
         if (nextMode === 'json') {
             const built = guiFieldsToObject(guiRows);
             setJsonContent(JSON.stringify(built, null, 2));
@@ -433,10 +447,32 @@ export default function ClientAppDatabase({
     }
 
     function updateGuiRow(index: number, patch: Partial<GuiFieldRow>) {
+        setGuiJsonError(null);
         setGuiRows((prev) => {
-            const next = prev.map((r, i) =>
-                i === index ? { ...r, ...patch } : r,
-            );
+            const next = prev.map((r, i) => {
+                if (i !== index) {
+                    return r;
+                }
+
+                const updated: GuiFieldRow = { ...r, ...patch };
+                if (patch.type && patch.jsonValue === undefined) {
+                    const trimmed = updated.jsonValue.trim();
+                    if (
+                        patch.type === 'array' &&
+                        (trimmed === '' || trimmed === '{}')
+                    ) {
+                        updated.jsonValue = '[]';
+                    } else if (
+                        (patch.type === 'object' ||
+                            (patch.type as string) === 'map') &&
+                        (trimmed === '' || trimmed === '[]')
+                    ) {
+                        updated.jsonValue = '{}';
+                    }
+                }
+
+                return updated;
+            });
             setJsonContent(JSON.stringify(guiFieldsToObject(next), null, 2));
 
             return next;
@@ -505,6 +541,24 @@ export default function ClientAppDatabase({
             return;
         }
 
+        if (editorMode === 'gui') {
+            for (const row of guiRows) {
+                const cleanKey = row.key.trim();
+                if (!cleanKey || !isComplexJsonFieldType(row.type)) {
+                    continue;
+                }
+                try {
+                    JSON.parse(row.jsonValue);
+                } catch {
+                    setGuiJsonError(
+                        `Le champ « ${cleanKey} » contient du JSON invalide. Corrigez la syntaxe avant d'enregistrer.`,
+                    );
+                    return;
+                }
+            }
+            setGuiJsonError(null);
+        }
+
         const payloadString =
             editorMode === 'gui'
                 ? JSON.stringify(guiFieldsToObject(guiRows), null, 2)
@@ -552,7 +606,9 @@ export default function ClientAppDatabase({
         );
     }
 
-    function applyDatabaseQuery(overrides: Partial<DbFilters & { page?: number }>) {
+    function applyDatabaseQuery(
+        overrides: Partial<DbFilters & { page?: number }>,
+    ) {
         if (!activeCollection) {
             return;
         }
@@ -562,8 +618,10 @@ export default function ClientAppDatabase({
                 collection: activeCollection,
                 search: overrides.search ?? searchInput,
                 per_page: overrides.per_page ?? perPage,
-                order_by: overrides.order_by ?? dbFilters?.order_by ?? 'created_at',
-                direction: overrides.direction ?? dbFilters?.direction ?? 'desc',
+                order_by:
+                    overrides.order_by ?? dbFilters?.order_by ?? 'created_at',
+                direction:
+                    overrides.direction ?? dbFilters?.direction ?? 'desc',
                 page: overrides.page ?? 1,
             },
             { preserveState: true, preserveScroll: true },
@@ -624,9 +682,9 @@ export default function ClientAppDatabase({
     return (
         <>
             <Head title={`${app.name} — Firestore / NoSQL Explorer`} />
-            <div className="space-y-4">
-                {/* Top Firebase Firestore Header Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs">
+            <div className="flex min-h-0 flex-1 flex-col gap-4">
+                {/* Top Firestore Header Bar */}
+                <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-xs">
                     <div className="flex items-center gap-3">
                         <div className="flex size-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                             <Database className="size-5" />
@@ -669,7 +727,6 @@ export default function ClientAppDatabase({
                         <Button
                             type="button"
                             size="sm"
-                            className="bg-emerald-600 text-white hover:bg-emerald-500"
                             onClick={() => setNewCollectionModalOpen(true)}
                         >
                             <Plus className="mr-1.5 size-4" />
@@ -678,17 +735,17 @@ export default function ClientAppDatabase({
                     </div>
                 </div>
 
-                {errors?.data && (
+                {(errors?.data || guiJsonError) && (
                     <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-xs font-medium text-red-700 dark:text-red-300">
-                        {errors.data}
+                        {guiJsonError ?? errors?.data}
                     </div>
                 )}
 
-                {/* Firebase Firestore 3-Pane Explorer */}
-                <div className="grid min-h-[640px] overflow-hidden rounded-xl border bg-card shadow-xs lg:grid-cols-12">
+                {/* Firestore 3-Pane Explorer — fluid full-height */}
+                <div className="grid min-h-[600px] flex-1 overflow-hidden rounded-xl bg-card shadow-xs lg:grid-cols-12">
                     {/* PANE 1: COLLECTIONS */}
-                    <div className="flex flex-col border-b lg:col-span-3 lg:border-r lg:border-b-0">
-                        <div className="flex items-center justify-between border-b bg-muted/40 px-3.5 py-2.5">
+                    <div className="flex min-h-0 flex-col border-b border-border/50 lg:col-span-3 lg:border-r lg:border-b-0">
+                        <div className="flex shrink-0 items-center justify-between bg-muted/35 px-3.5 py-2.5">
                             <span className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-muted-foreground uppercase">
                                 <Layers className="size-3.5 text-emerald-600" />
                                 Collections ({collections.length})
@@ -721,8 +778,8 @@ export default function ClientAppDatabase({
                                         col.name === activeCollection;
                                     const hasSchema = Boolean(
                                         col.schema &&
-                                            col.schema.fields &&
-                                            col.schema.fields.length > 0,
+                                        col.schema.fields &&
+                                        col.schema.fields.length > 0,
                                     );
 
                                     return (
@@ -782,8 +839,8 @@ export default function ClientAppDatabase({
                     </div>
 
                     {/* PANE 2: PAGINATED DOCUMENTS LIST */}
-                    <div className="flex flex-col border-b lg:col-span-4 lg:border-r lg:border-b-0">
-                        <div className="space-y-2 border-b bg-muted/40 p-2.5">
+                    <div className="flex min-h-0 flex-col border-b border-border/50 lg:col-span-4 lg:border-r lg:border-b-0">
+                        <div className="shrink-0 space-y-2 bg-muted/35 p-2.5">
                             <div className="flex items-center justify-between">
                                 <span className="font-mono text-xs font-bold text-foreground">
                                     {activeCollection
@@ -848,7 +905,7 @@ export default function ClientAppDatabase({
                             )}
                         </div>
 
-                        <div className="max-h-[520px] flex-1 divide-y overflow-y-auto">
+                        <div className="min-h-0 flex-1 divide-y divide-border/40 overflow-y-auto">
                             {!activeCollection ? (
                                 <div className="p-8 text-center text-xs text-muted-foreground">
                                     Sélectionnez une collection à gauche.
@@ -1008,7 +1065,7 @@ export default function ClientAppDatabase({
                     </div>
 
                     {/* PANE 3: DOCUMENT INSPECTOR & DUAL EDITOR (GRAPHICAL UI OR MONACO JSON) */}
-                    <div className="flex flex-col lg:col-span-5">
+                    <div className="flex min-h-0 flex-col lg:col-span-5">
                         {!activeCollection ? (
                             <div className="flex flex-1 items-center justify-center p-8 text-center text-sm text-muted-foreground">
                                 Créez ou sélectionnez une collection pour
@@ -1017,7 +1074,7 @@ export default function ClientAppDatabase({
                         ) : (
                             <>
                                 {/* Pane 3 Header with Mode Switcher */}
-                                <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-4 py-2.5">
+                                <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 bg-muted/35 px-4 py-2.5">
                                     <div className="flex items-center gap-2">
                                         <Badge
                                             variant={
@@ -1027,7 +1084,7 @@ export default function ClientAppDatabase({
                                             }
                                             className={
                                                 isCreatingDoc
-                                                    ? 'bg-emerald-600 text-white'
+                                                    ? ''
                                                     : 'font-mono text-xs'
                                             }
                                         >
@@ -1049,7 +1106,7 @@ export default function ClientAppDatabase({
                                     </div>
 
                                     {/* Dual Editor Toggle: Graphical vs JSON Code */}
-                                    <div className="inline-flex rounded-lg border bg-background p-0.5">
+                                    <div className="inline-flex rounded-lg bg-muted p-0.5">
                                         <button
                                             type="button"
                                             onClick={() =>
@@ -1057,7 +1114,7 @@ export default function ClientAppDatabase({
                                             }
                                             className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition ${
                                                 editorMode === 'gui'
-                                                    ? 'bg-emerald-600 text-white shadow-2xs'
+                                                    ? 'bg-primary text-primary-foreground shadow-2xs'
                                                     : 'text-muted-foreground hover:text-foreground'
                                             }`}
                                         >
@@ -1071,7 +1128,7 @@ export default function ClientAppDatabase({
                                             }
                                             className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition ${
                                                 editorMode === 'json'
-                                                    ? 'bg-emerald-600 text-white shadow-2xs'
+                                                    ? 'bg-primary text-primary-foreground shadow-2xs'
                                                     : 'text-muted-foreground hover:text-foreground'
                                             }`}
                                         >
@@ -1083,11 +1140,23 @@ export default function ClientAppDatabase({
 
                                 <form
                                     onSubmit={handleSaveDocument}
-                                    className="flex flex-1 flex-col justify-between p-4"
+                                    className="flex min-h-0 flex-1 flex-col"
                                 >
-                                    <div className="space-y-4">
+                                    <div
+                                        className={`flex min-h-0 flex-1 flex-col ${
+                                            editorMode === 'json'
+                                                ? ''
+                                                : 'gap-4 p-4'
+                                        }`}
+                                    >
                                         {isCreatingDoc && (
-                                            <div className="space-y-1">
+                                            <div
+                                                className={`shrink-0 space-y-1 ${
+                                                    editorMode === 'json'
+                                                        ? 'bg-muted/20 px-4 py-3'
+                                                        : ''
+                                                }`}
+                                            >
                                                 <Label className="text-xs">
                                                     ID du document (optionnel —
                                                     UUID généré automatiquement
@@ -1107,8 +1176,8 @@ export default function ClientAppDatabase({
                                         )}
 
                                         {editorMode === 'gui' ? (
-                                            <div className="space-y-2.5">
-                                                <div className="flex items-center justify-between">
+                                            <div className="flex min-h-0 flex-1 flex-col space-y-2.5">
+                                                <div className="flex shrink-0 items-center justify-between">
                                                     <Label className="text-xs font-semibold">
                                                         Champs du Document
                                                         (Style Firebase
@@ -1131,7 +1200,7 @@ export default function ClientAppDatabase({
                                                     )}
                                                 </div>
 
-                                                <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                                                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                                                     {guiRows.map((row, idx) => (
                                                         <div
                                                             key={row.id}
@@ -1288,8 +1357,7 @@ export default function ClientAppDatabase({
                                                                             updateGuiRow(
                                                                                 idx,
                                                                                 {
-                                                                                    booleanValue:
-                                                                                        true,
+                                                                                    booleanValue: true,
                                                                                 },
                                                                             )
                                                                         }
@@ -1307,8 +1375,7 @@ export default function ClientAppDatabase({
                                                                             updateGuiRow(
                                                                                 idx,
                                                                                 {
-                                                                                    booleanValue:
-                                                                                        false,
+                                                                                    booleanValue: false,
                                                                                 },
                                                                             )
                                                                         }
@@ -1323,29 +1390,28 @@ export default function ClientAppDatabase({
                                                                 </div>
                                                             )}
 
-                                                            {(row.type ===
-                                                                'object' ||
-                                                                row.type ===
-                                                                    'array') && (
-                                                                <textarea
+                                                            {isComplexJsonFieldType(
+                                                                row.type,
+                                                            ) && (
+                                                                <ResizableJsonEditor
                                                                     value={
                                                                         row.jsonValue
                                                                     }
+                                                                    expectedType={
+                                                                        row.type
+                                                                    }
+                                                                    minLines={3}
                                                                     onChange={(
-                                                                        e,
+                                                                        val,
                                                                     ) =>
                                                                         updateGuiRow(
                                                                             idx,
                                                                             {
                                                                                 jsonValue:
-                                                                                    e
-                                                                                        .target
-                                                                                        .value,
+                                                                                    val,
                                                                             },
                                                                         )
                                                                     }
-                                                                    rows={2}
-                                                                    className="w-full rounded-md border bg-background p-2 font-mono text-xs"
                                                                 />
                                                             )}
 
@@ -1353,7 +1419,7 @@ export default function ClientAppDatabase({
                                                                 'blob' && (
                                                                 <div className="space-y-2 rounded-md border border-dashed bg-background p-2.5 text-xs">
                                                                     <div className="flex flex-wrap items-center justify-between gap-2">
-                                                                        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-500">
+                                                                        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
                                                                             <FileUp className="size-3.5" />
                                                                             <span>
                                                                                 Charger
@@ -1448,29 +1514,21 @@ export default function ClientAppDatabase({
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="space-y-2">
-                                                <div className="flex items-center justify-between">
-                                                    <Label className="flex items-center gap-1.5 text-xs font-semibold">
-                                                        <Sparkles className="size-3.5 text-emerald-600" />
-                                                        Éditeur JSON Monaco
-                                                        {schemaFields &&
-                                                            schemaFields.length >
-                                                                0 &&
-                                                            ' (Suggestions du schéma actives)'}
-                                                    </Label>
-                                                </div>
+                                            <div className="flex min-h-[380px] flex-1 flex-col">
                                                 <MonacoCodeEditor
                                                     value={jsonContent}
                                                     onChange={setJsonContent}
                                                     language="json"
-                                                    height={360}
+                                                    height="100%"
+                                                    edgeToEdge
+                                                    className="flex-1"
                                                     schemaFields={schemaFields}
                                                 />
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="mt-4 flex items-center justify-between border-t pt-3">
+                                    <div className="flex shrink-0 items-center justify-between bg-muted/25 px-4 py-3">
                                         {!isCreatingDoc && selectedRecord ? (
                                             <span className="font-mono text-[10px] text-muted-foreground">
                                                 Mis à jour :{' '}
@@ -1497,11 +1555,7 @@ export default function ClientAppDatabase({
                                                     Nouveau
                                                 </Button>
                                             )}
-                                            <Button
-                                                type="submit"
-                                                size="sm"
-                                                className="bg-emerald-600 text-white hover:bg-emerald-500"
-                                            >
+                                            <Button type="submit" size="sm">
                                                 {isCreatingDoc
                                                     ? 'Insérer le Document'
                                                     : 'Enregistrer les modifications'}
@@ -1556,12 +1610,7 @@ export default function ClientAppDatabase({
                             >
                                 Annuler
                             </Button>
-                            <Button
-                                type="submit"
-                                className="bg-emerald-600 text-white hover:bg-emerald-500"
-                            >
-                                Créer la collection
-                            </Button>
+                            <Button type="submit">Créer la collection</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
@@ -1781,11 +1830,7 @@ export default function ClientAppDatabase({
                                 >
                                     Annuler
                                 </Button>
-                                <Button
-                                    type="submit"
-                                    size="sm"
-                                    className="bg-emerald-600 text-white hover:bg-emerald-500"
-                                >
+                                <Button type="submit" size="sm">
                                     Enregistrer le Schéma
                                 </Button>
                             </div>

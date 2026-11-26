@@ -381,15 +381,15 @@ export default function AdminDashboard({
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
-                            <div className="flex items-center justify-between border-b pb-2">
+                            <div className="flex items-center justify-between py-1">
                                 <span className="text-muted-foreground">
                                     Statut Serveur BaaS
                                 </span>
-                                <Badge className="bg-emerald-600 text-white">
+                                <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300">
                                     Opérationnel
                                 </Badge>
                             </div>
-                            <div className="flex items-center justify-between border-b pb-2">
+                            <div className="flex items-center justify-between py-1">
                                 <span className="text-muted-foreground">
                                     Version PHP
                                 </span>
@@ -397,7 +397,7 @@ export default function AdminDashboard({
                                     {systemHealth.php_version}
                                 </span>
                             </div>
-                            <div className="flex items-center justify-between border-b pb-2">
+                            <div className="flex items-center justify-between py-1">
                                 <span className="text-muted-foreground">
                                     Moteur Zenbase Core
                                 </span>
@@ -405,7 +405,7 @@ export default function AdminDashboard({
                                     v{systemHealth.laravel_version}
                                 </span>
                             </div>
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between py-1">
                                 <span className="text-muted-foreground">
                                     Moteur SQLite + JSON1
                                 </span>

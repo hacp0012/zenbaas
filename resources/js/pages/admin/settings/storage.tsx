@@ -313,12 +313,12 @@ export default function AdminSettingsStorage({
                                                                 preset.value,
                                                             )
                                                         }
-                                                        className={`rounded-md border px-2.5 py-1 font-mono text-[11px] transition ${
+                                                        className={`rounded-md px-2.5 py-1 font-mono text-[11px] transition ${
                                                             form.data
                                                                 .global_max_storage_mb ===
                                                             preset.value
-                                                                ? 'border-emerald-600 bg-emerald-600 text-white'
-                                                                : 'hover:bg-muted'
+                                                                ? 'bg-primary text-primary-foreground shadow-xs'
+                                                                : 'bg-muted/60 hover:bg-muted'
                                                         }`}
                                                     >
                                                         {preset.label}
@@ -338,7 +338,7 @@ export default function AdminSettingsStorage({
                                 )}
 
                                 {usedPercent !== null && (
-                                    <div className="space-y-1.5 rounded-lg border bg-muted/20 p-3 text-xs">
+                                    <div className="space-y-1.5 rounded-xl bg-muted/40 p-3 text-xs">
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">
                                                 Espace occupé
@@ -370,7 +370,7 @@ export default function AdminSettingsStorage({
 
                                 <Button
                                     type="submit"
-                                    className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
+                                    className="w-full"
                                     disabled={form.processing}
                                 >
                                     {form.processing

@@ -87,7 +87,7 @@ export default function ClientAppCors({ app }: { app: ZenbaseApp }) {
 
                             <Button
                                 type="submit"
-                                className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
+                                className="w-full"
                                 disabled={corsForm.processing}
                             >
                                 Autoriser ce domaine

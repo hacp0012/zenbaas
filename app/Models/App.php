@@ -175,7 +175,12 @@ class App extends Model
      *     auth_per_minute: int,
      *     functions_per_minute: int,
      *     storage_per_minute: int,
-     *     mcp_per_minute: int
+     *     mcp_per_minute: int,
+     *     function_mail_per_minute: int,
+     *     function_mail_per_invocation: int,
+     *     function_mail_max_recipients: int,
+     *     function_http_per_invocation: int,
+     *     function_http_timeout_seconds: int
      * }
      */
     public static function defaultRateLimitSettings(): array
@@ -190,6 +195,11 @@ class App extends Model
             'functions_per_minute' => $platform['default_functions_rate_limit'],
             'storage_per_minute' => $platform['default_storage_rate_limit'],
             'mcp_per_minute' => $platform['default_mcp_rate_limit'],
+            'function_mail_per_minute' => $platform['default_function_mail_per_minute'],
+            'function_mail_per_invocation' => $platform['default_function_mail_per_invocation'],
+            'function_mail_max_recipients' => $platform['default_function_mail_max_recipients'],
+            'function_http_per_invocation' => $platform['default_function_http_per_invocation'],
+            'function_http_timeout_seconds' => $platform['default_function_http_timeout_seconds'],
         ];
     }
 
@@ -203,7 +213,12 @@ class App extends Model
      *     auth_per_minute: int,
      *     functions_per_minute: int,
      *     storage_per_minute: int,
-     *     mcp_per_minute: int
+     *     mcp_per_minute: int,
+     *     function_mail_per_minute: int,
+     *     function_mail_per_invocation: int,
+     *     function_mail_max_recipients: int,
+     *     function_http_per_invocation: int,
+     *     function_http_timeout_seconds: int
      * }
      */
     public function rateLimitSettings(): array
@@ -229,6 +244,11 @@ class App extends Model
             'functions_per_minute' => max(5, min(5000, (int) ($configured['functions_per_minute'] ?? $defaults['functions_per_minute']))),
             'storage_per_minute' => max(5, min(2000, (int) ($configured['storage_per_minute'] ?? $defaults['storage_per_minute']))),
             'mcp_per_minute' => max(10, min(5000, (int) ($configured['mcp_per_minute'] ?? $legacyApiLimit))),
+            'function_mail_per_minute' => max(1, min(500, (int) ($configured['function_mail_per_minute'] ?? $defaults['function_mail_per_minute']))),
+            'function_mail_per_invocation' => max(1, min(25, (int) ($configured['function_mail_per_invocation'] ?? $defaults['function_mail_per_invocation']))),
+            'function_mail_max_recipients' => max(1, min(50, (int) ($configured['function_mail_max_recipients'] ?? $defaults['function_mail_max_recipients']))),
+            'function_http_per_invocation' => max(1, min(25, (int) ($configured['function_http_per_invocation'] ?? $defaults['function_http_per_invocation']))),
+            'function_http_timeout_seconds' => max(1, min(4, (int) ($configured['function_http_timeout_seconds'] ?? $defaults['function_http_timeout_seconds']))),
         ];
     }
 

@@ -44,7 +44,14 @@ class AdminSettingsController extends Controller
             'default_functions_rate_limit' => ['required', 'integer', 'min:5', 'max:5000'],
             'default_storage_rate_limit' => ['required', 'integer', 'min:5', 'max:2000'],
             'default_mcp_rate_limit' => ['required', 'integer', 'min:10', 'max:5000'],
+            'default_function_mail_per_minute' => ['sometimes', 'integer', 'min:1', 'max:500'],
+            'default_function_mail_per_invocation' => ['sometimes', 'integer', 'min:1', 'max:25'],
+            'default_function_mail_max_recipients' => ['sometimes', 'integer', 'min:1', 'max:50'],
+            'default_function_http_per_invocation' => ['sometimes', 'integer', 'min:1', 'max:25'],
+            'default_function_http_timeout_seconds' => ['sometimes', 'integer', 'min:1', 'max:4'],
         ]);
+
+        $current = PlatformSetting::allSettings();
 
         PlatformSetting::saveSettings([
             'default_user_expiration_days' => $validated['default_user_expiration_days'] !== null
@@ -61,6 +68,11 @@ class AdminSettingsController extends Controller
             'default_functions_rate_limit' => (int) $validated['default_functions_rate_limit'],
             'default_storage_rate_limit' => (int) $validated['default_storage_rate_limit'],
             'default_mcp_rate_limit' => (int) $validated['default_mcp_rate_limit'],
+            'default_function_mail_per_minute' => (int) ($validated['default_function_mail_per_minute'] ?? $current['default_function_mail_per_minute']),
+            'default_function_mail_per_invocation' => (int) ($validated['default_function_mail_per_invocation'] ?? $current['default_function_mail_per_invocation']),
+            'default_function_mail_max_recipients' => (int) ($validated['default_function_mail_max_recipients'] ?? $current['default_function_mail_max_recipients']),
+            'default_function_http_per_invocation' => (int) ($validated['default_function_http_per_invocation'] ?? $current['default_function_http_per_invocation']),
+            'default_function_http_timeout_seconds' => (int) ($validated['default_function_http_timeout_seconds'] ?? $current['default_function_http_timeout_seconds']),
         ]);
 
         return back()->with('success', 'Configurations globales par défaut enregistrées avec succès.');

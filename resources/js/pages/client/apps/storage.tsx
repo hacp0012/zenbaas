@@ -447,7 +447,6 @@ export default function ClientAppStorage({
                         <Button
                             type="button"
                             size="sm"
-                            className="bg-emerald-600 text-white hover:bg-emerald-500"
                             onClick={() => setUploadModalOpen(true)}
                         >
                             <Upload className="mr-1.5 size-4" />
@@ -457,10 +456,10 @@ export default function ClientAppStorage({
                 </div>
 
                 {/* Main Explorer Workspace */}
-                <div className="grid min-h-[600px] overflow-hidden rounded-xl border bg-card shadow-xs lg:grid-cols-12">
+                <div className="grid min-h-[600px] overflow-hidden rounded-xl bg-card shadow-xs lg:grid-cols-12">
                     {/* Left Folder Tree & Quick Filters */}
-                    <div className="flex flex-col border-b bg-muted/20 lg:col-span-3 lg:border-r lg:border-b-0">
-                        <div className="border-b px-3.5 py-2.5 text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                    <div className="flex flex-col bg-muted/25 lg:col-span-3">
+                        <div className="px-3.5 py-2.5 text-xs font-bold tracking-wider text-muted-foreground uppercase">
                             Arborescence Dossiers
                         </div>
                         <div className="space-y-1 p-2">
@@ -472,7 +471,7 @@ export default function ClientAppStorage({
                                 }}
                                 className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition ${
                                     activeFolder === 'all'
-                                        ? 'bg-emerald-600 text-white'
+                                        ? 'bg-primary text-primary-foreground shadow-xs'
                                         : 'hover:bg-muted'
                                 }`}
                             >
@@ -695,13 +694,13 @@ export default function ClientAppStorage({
                                 </select>
                             </form>
 
-                            <div className="inline-flex rounded-lg border bg-background p-0.5">
+                            <div className="inline-flex rounded-lg bg-muted p-0.5">
                                 <button
                                     type="button"
                                     onClick={() => setViewMode('table')}
                                     className={`rounded-md p-1.5 ${
                                         viewMode === 'table'
-                                            ? 'bg-emerald-600 text-white'
+                                            ? 'bg-primary text-primary-foreground shadow-2xs'
                                             : 'text-muted-foreground hover:text-foreground'
                                     }`}
                                     title="Vue Liste Détaillée"
@@ -713,7 +712,7 @@ export default function ClientAppStorage({
                                     onClick={() => setViewMode('grid')}
                                     className={`rounded-md p-1.5 ${
                                         viewMode === 'grid'
-                                            ? 'bg-emerald-600 text-white'
+                                            ? 'bg-primary text-primary-foreground shadow-2xs'
                                             : 'text-muted-foreground hover:text-foreground'
                                     }`}
                                     title="Vue Grille Vignettes"
@@ -1185,7 +1184,6 @@ export default function ClientAppStorage({
                             </Button>
                             <Button
                                 type="submit"
-                                className="bg-emerald-600 text-white hover:bg-emerald-500"
                                 disabled={uploadForm.processing}
                             >
                                 {uploadForm.processing
@@ -1391,7 +1389,7 @@ export default function ClientAppStorage({
                                         <Button
                                             asChild
                                             size="sm"
-                                            className="h-7 bg-emerald-600 text-xs text-white hover:bg-emerald-500"
+                                            className="h-7 text-xs"
                                         >
                                             <a
                                                 href={`${previewFile.url}?download=1`}
@@ -1607,11 +1605,7 @@ export default function ClientAppStorage({
                                         Ouvrir
                                     </a>
                                 </Button>
-                                <Button
-                                    asChild
-                                    size="sm"
-                                    className="bg-emerald-600 text-white hover:bg-emerald-500"
-                                >
+                                <Button asChild size="sm">
                                     <a
                                         href={`${detailsFile.url}?download=1`}
                                         download={detailsFile.original_name}

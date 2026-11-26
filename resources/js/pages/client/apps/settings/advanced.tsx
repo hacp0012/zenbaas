@@ -146,7 +146,6 @@ export default function ClientAppAdvancedSettings({
                                 <div className="flex justify-end">
                                     <Button
                                         type="submit"
-                                        className="bg-emerald-600 text-white hover:bg-emerald-500"
                                         disabled={form.processing}
                                     >
                                         {form.processing

@@ -5,10 +5,14 @@ import {
     Calendar,
     CalendarClock,
     CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
     HardDrive,
     Infinity as InfinityIcon,
     Layers,
     Pencil,
+    RotateCcw,
+    Search,
     Settings2,
     ShieldAlert,
     Trash2,
@@ -17,7 +21,10 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { update as updateAdminUser } from '@/actions/App/Http/Controllers/Admin/AdminUserController';
+import {
+    index as indexAdminUsers,
+    update as updateAdminUser,
+} from '@/actions/App/Http/Controllers/Admin/AdminUserController';
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -54,6 +61,33 @@ type AdminUserRow = {
     apps_count: number;
     total_api_calls: number;
     created_at: string | null;
+};
+
+type PaginatedUsers = {
+    items: AdminUserRow[];
+    total: number;
+    page: number;
+    last_page: number;
+    per_page: number;
+    from: number | null;
+    to: number | null;
+};
+
+type UsersStats = {
+    total: number;
+    admins: number;
+    active: number;
+    suspended: number;
+    expired: number;
+};
+
+type UsersFilters = {
+    search: string;
+    role: 'all' | 'client' | 'admin';
+    status: 'all' | 'active' | 'suspended' | 'expired';
+    sort: 'created_at' | 'name' | 'apps_count' | 'total_api_calls';
+    direction: 'asc' | 'desc';
+    per_page: number;
 };
 
 const STORAGE_PRESETS_MB = [
@@ -102,10 +136,99 @@ function toDateTimeLocalValue(iso: string | null): string {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
+export default function AdminUsersIndex({
+    users,
+    stats,
+    filters,
+}: {
+    users: PaginatedUsers;
+    stats: UsersStats;
+    filters: UsersFilters;
+}) {
     const { auth } = usePage<{
         auth: Auth;
     }>().props;
+
+    const [searchInput, setSearchInput] = useState(filters.search ?? '');
+    const [roleFilter, setRoleFilter] = useState<UsersFilters['role']>(
+        filters.role ?? 'all',
+    );
+    const [statusFilter, setStatusFilter] = useState<UsersFilters['status']>(
+        filters.status ?? 'all',
+    );
+    const [sortField, setSortField] = useState<UsersFilters['sort']>(
+        filters.sort ?? 'created_at',
+    );
+    const [sortDirection, setSortDirection] = useState<
+        UsersFilters['direction']
+    >(filters.direction ?? 'desc');
+    const [perPage, setPerPage] = useState<number>(filters.per_page ?? 15);
+
+    const hasActiveFilters =
+        filters.search !== '' ||
+        filters.role !== 'all' ||
+        filters.status !== 'all' ||
+        filters.sort !== 'created_at' ||
+        filters.direction !== 'desc';
+
+    function applyFilters(overrides: Partial<UsersFilters & { page?: number }>) {
+        const nextQuery: Record<string, string | number> = {
+            search: overrides.search ?? searchInput,
+            role: overrides.role ?? roleFilter,
+            status: overrides.status ?? statusFilter,
+            sort: overrides.sort ?? sortField,
+            direction: overrides.direction ?? sortDirection,
+            per_page: overrides.per_page ?? perPage,
+            page: overrides.page ?? 1,
+        };
+
+        if (nextQuery.search === '') {
+            delete nextQuery.search;
+        }
+        if (nextQuery.role === 'all') {
+            delete nextQuery.role;
+        }
+        if (nextQuery.status === 'all') {
+            delete nextQuery.status;
+        }
+        if (nextQuery.page === 1) {
+            delete nextQuery.page;
+        }
+
+        router.get(
+            indexAdminUsers.url({ query: nextQuery }),
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    }
+
+    function handleFilterSubmit(e: FormEvent) {
+        e.preventDefault();
+        applyFilters({ page: 1 });
+    }
+
+    function resetFilters() {
+        setSearchInput('');
+        setRoleFilter('all');
+        setStatusFilter('all');
+        setSortField('created_at');
+        setSortDirection('desc');
+        setPerPage(15);
+
+        router.get(
+            indexAdminUsers.url(),
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    }
 
     const [userToToggle, setUserToToggle] = useState<AdminUserRow | null>(null);
     const [userToDelete, setUserToDelete] = useState<AdminUserRow | null>(null);
@@ -245,22 +368,49 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
         <>
             <Head title="Gestion des Clients — Administration Zenbase" />
             <div className="flex flex-1 flex-col gap-6 p-6">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <ShieldAlert className="size-5 text-amber-500" />
-                        <span className="text-xs font-semibold tracking-wider text-amber-600 uppercase dark:text-amber-400">
-                            Administration Zenbase
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <ShieldAlert className="size-5 text-amber-500" />
+                            <span className="text-xs font-semibold tracking-wider text-amber-600 uppercase dark:text-amber-400">
+                                Administration Zenbase
+                            </span>
+                        </div>
+                        <h1 className="mt-1 text-2xl font-bold tracking-tight">
+                            Gestion des Comptes Clients, Quotas &amp;
+                            Expirations
+                        </h1>
+                        <p className="text-sm text-muted-foreground">
+                            Créez un compte client, filtrez les utilisateurs,
+                            définissez leurs quotas d&apos;applications, de
+                            stockage et d&apos;expiration.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="rounded-lg bg-card px-3 py-1.5 font-medium shadow-xs">
+                            Total :{' '}
+                            <strong className="font-mono">{stats.total}</strong>
+                        </span>
+                        <span className="rounded-lg bg-emerald-500/10 px-3 py-1.5 font-medium text-emerald-700 dark:text-emerald-300">
+                            Actifs :{' '}
+                            <strong className="font-mono">
+                                {stats.active}
+                            </strong>
+                        </span>
+                        <span className="rounded-lg bg-red-500/10 px-3 py-1.5 font-medium text-red-700 dark:text-red-300">
+                            Suspendus :{' '}
+                            <strong className="font-mono">
+                                {stats.suspended}
+                            </strong>
+                        </span>
+                        <span className="rounded-lg bg-amber-500/10 px-3 py-1.5 font-medium text-amber-700 dark:text-amber-300">
+                            Admins :{' '}
+                            <strong className="font-mono">
+                                {stats.admins}
+                            </strong>
                         </span>
                     </div>
-                    <h1 className="mt-1 text-2xl font-bold tracking-tight">
-                        Gestion des Comptes Clients, Quotas & Expirations
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Créez un compte client, définissez le nombre maximal
-                        d&apos;applications (par défaut 1) et la date
-                        d&apos;expiration/suspension automatique (par défaut à
-                        l&apos;infini).
-                    </p>
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-3">
@@ -348,7 +498,7 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                                 </div>
 
                                 {!form.data.is_admin && (
-                                    <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+                                    <div className="space-y-3 rounded-xl bg-muted/40 p-3.5">
                                         <div className="space-y-1.5">
                                             <Label
                                                 htmlFor="max_apps"
@@ -524,37 +674,170 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
 
                     {/* Users Table */}
                     <Card className="lg:col-span-2">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <Users className="size-4" />
-                                Utilisateurs Inscrits ({users.length})
-                            </CardTitle>
-                            <CardDescription>
-                                Liste complète des développeurs, quotas
-                                d&apos;applications et dates d&apos;expiration
-                            </CardDescription>
+                        <CardHeader className="space-y-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <CardTitle className="flex items-center gap-2 text-base">
+                                        <Users className="size-4" />
+                                        Utilisateurs Inscrits ({users.total})
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Liste filtrable et paginée des
+                                        développeurs, quotas et expirations
+                                    </CardDescription>
+                                </div>
+                                {hasActiveFilters && (
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={resetFilters}
+                                    >
+                                        <RotateCcw className="mr-1.5 size-3.5" />
+                                        Réinitialiser
+                                    </Button>
+                                )}
+                            </div>
+
+                            <form
+                                onSubmit={handleFilterSubmit}
+                                className="flex flex-wrap items-center gap-2"
+                            >
+                                <div className="relative min-w-[200px] flex-1">
+                                    <Search className="pointer-events-none absolute top-2.5 left-2.5 size-3.5 text-muted-foreground" />
+                                    <Input
+                                        value={searchInput}
+                                        onChange={(e) =>
+                                            setSearchInput(e.target.value)
+                                        }
+                                        placeholder="Rechercher par nom ou e-mail..."
+                                        className="h-9 pl-8 text-xs"
+                                    />
+                                </div>
+
+                                <select
+                                    value={roleFilter}
+                                    onChange={(e) => {
+                                        const next = e.target
+                                            .value as UsersFilters['role'];
+                                        setRoleFilter(next);
+                                        applyFilters({ role: next, page: 1 });
+                                    }}
+                                    aria-label="Filtrer par rôle"
+                                    className="h-9 rounded-md border border-input bg-background px-2.5 text-xs"
+                                >
+                                    <option value="all">Tous les rôles</option>
+                                    <option value="client">Clients</option>
+                                    <option value="admin">Super-Admin</option>
+                                </select>
+
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => {
+                                        const next = e.target
+                                            .value as UsersFilters['status'];
+                                        setStatusFilter(next);
+                                        applyFilters({ status: next, page: 1 });
+                                    }}
+                                    aria-label="Filtrer par statut"
+                                    className="h-9 rounded-md border border-input bg-background px-2.5 text-xs"
+                                >
+                                    <option value="all">
+                                        Tous les statuts
+                                    </option>
+                                    <option value="active">Actifs</option>
+                                    <option value="suspended">Suspendus</option>
+                                    <option value="expired">Expirés</option>
+                                </select>
+
+                                <select
+                                    value={`${sortField}:${sortDirection}`}
+                                    onChange={(e) => {
+                                        const [s, d] = e.target.value.split(
+                                            ':',
+                                        ) as [
+                                            UsersFilters['sort'],
+                                            UsersFilters['direction'],
+                                        ];
+                                        setSortField(s);
+                                        setSortDirection(d);
+                                        applyFilters({
+                                            sort: s,
+                                            direction: d,
+                                            page: 1,
+                                        });
+                                    }}
+                                    aria-label="Trier les utilisateurs"
+                                    className="h-9 rounded-md border border-input bg-background px-2.5 text-xs"
+                                >
+                                    <option value="created_at:desc">
+                                        Plus récents
+                                    </option>
+                                    <option value="created_at:asc">
+                                        Plus anciens
+                                    </option>
+                                    <option value="name:asc">
+                                        Nom (A → Z)
+                                    </option>
+                                    <option value="apps_count:desc">
+                                        Apps (Décroissant)
+                                    </option>
+                                    <option value="total_api_calls:desc">
+                                        Appels API (Décroissant)
+                                    </option>
+                                </select>
+
+                                <select
+                                    value={perPage}
+                                    onChange={(e) => {
+                                        const next = Number(e.target.value);
+                                        setPerPage(next);
+                                        applyFilters({
+                                            per_page: next,
+                                            page: 1,
+                                        });
+                                    }}
+                                    aria-label="Utilisateurs par page"
+                                    className="h-9 rounded-md border border-input bg-background px-2.5 font-mono text-xs"
+                                >
+                                    <option value={10}>10 / page</option>
+                                    <option value={15}>15 / page</option>
+                                    <option value={25}>25 / page</option>
+                                    <option value={50}>50 / page</option>
+                                </select>
+
+                                <Button type="submit" size="sm">
+                                    Filtrer
+                                </Button>
+                            </form>
                         </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead>
-                                        <tr className="border-b text-xs text-muted-foreground uppercase">
-                                            <th className="pb-3 font-medium">
-                                                Utilisateur
-                                            </th>
-                                            <th className="pb-3 font-medium">
-                                                Statut & Expiration
-                                            </th>
-                                            <th className="pb-3 font-medium">
-                                                Quota Apps / Appels
-                                            </th>
-                                            <th className="pb-3 text-right font-medium">
-                                                Actions
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                        {users.map((user) => {
+                        <CardContent className="space-y-4">
+                            {users.items.length === 0 ? (
+                                <div className="rounded-xl bg-muted/40 py-12 text-center text-sm text-muted-foreground">
+                                    Aucun utilisateur ne correspond aux critères
+                                    sélectionnés.
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead>
+                                            <tr className="border-b border-border/60 text-xs text-muted-foreground uppercase">
+                                                <th className="pb-3 font-medium">
+                                                    Utilisateur
+                                                </th>
+                                                <th className="pb-3 font-medium">
+                                                    Statut &amp; Expiration
+                                                </th>
+                                                <th className="pb-3 font-medium">
+                                                    Quota Apps / Appels
+                                                </th>
+                                                <th className="pb-3 text-right font-medium">
+                                                    Actions
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border/50">
+                                            {users.items.map((user) => {
                                             const isSelf =
                                                 auth.user.id === user.id;
 
@@ -773,8 +1056,64 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                                                 </tr>
                                             );
                                         })}
-                                    </tbody>
-                                </table>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            {/* Pagination Controls */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs text-muted-foreground">
+                                <span>
+                                    {users.total === 0 ? (
+                                        '0 utilisateur'
+                                    ) : (
+                                        <>
+                                            Affichage{' '}
+                                            <strong className="font-mono text-foreground">
+                                                {users.from ?? 1}–
+                                                {users.to ?? users.items.length}
+                                            </strong>{' '}
+                                            sur{' '}
+                                            <strong className="font-mono text-foreground">
+                                                {users.total}
+                                            </strong>{' '}
+                                            utilisateur(s)
+                                        </>
+                                    )}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="secondary"
+                                        disabled={users.page <= 1}
+                                        onClick={() =>
+                                            applyFilters({
+                                                page: users.page - 1,
+                                            })
+                                        }
+                                    >
+                                        <ChevronLeft className="mr-1 size-3.5" />
+                                        Précédent
+                                    </Button>
+                                    <span className="font-mono">
+                                        Page {users.page} / {users.last_page}
+                                    </span>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="secondary"
+                                        disabled={users.page >= users.last_page}
+                                        onClick={() =>
+                                            applyFilters({
+                                                page: users.page + 1,
+                                            })
+                                        }
+                                    >
+                                        Suivant
+                                        <ChevronRight className="ml-1 size-3.5" />
+                                    </Button>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -857,7 +1196,6 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                             </Button>
                             <Button
                                 type="submit"
-                                className="bg-emerald-600 text-white hover:bg-emerald-500"
                                 disabled={editProfileForm.processing}
                             >
                                 {editProfileForm.processing
@@ -921,7 +1259,7 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                             </p>
                         </div>
 
-                        <div className="space-y-2 rounded-lg border p-3">
+                        <div className="space-y-2 rounded-xl bg-muted/40 p-3.5">
                             <div className="flex items-center justify-between">
                                 <Label
                                     htmlFor="edit-max-storage-mb"
@@ -985,10 +1323,10 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                                                         preset.value,
                                                     )
                                                 }
-                                                className={`rounded-md border px-2 py-0.5 font-mono text-[11px] transition ${
+                                                className={`rounded-md px-2 py-0.5 font-mono text-[11px] transition ${
                                                     quotaMaxStorageMb ===
                                                     preset.value
-                                                        ? 'border-emerald-600 bg-emerald-600 text-white'
+                                                        ? 'bg-primary text-primary-foreground shadow-xs'
                                                         : 'bg-background hover:bg-muted'
                                                 }`}
                                             >
@@ -1016,7 +1354,7 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                             )}
                         </div>
 
-                        <div className="space-y-2 rounded-lg border p-3">
+                        <div className="space-y-2 rounded-xl bg-muted/40 p-3.5">
                             <div className="flex items-center justify-between">
                                 <Label className="text-xs font-semibold">
                                     Date de suspension / expiration automatique
@@ -1067,12 +1405,7 @@ export default function AdminUsersIndex({ users }: { users: AdminUserRow[] }) {
                             >
                                 Annuler
                             </Button>
-                            <Button
-                                type="submit"
-                                className="bg-emerald-600 text-white hover:bg-emerald-500"
-                            >
-                                Enregistrer
-                            </Button>
+                            <Button type="submit">Enregistrer</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

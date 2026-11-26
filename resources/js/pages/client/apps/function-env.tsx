@@ -282,11 +282,7 @@ export default function ClientAppFunctionEnv({
                             <Download className="mr-1.5 size-3.5" />
                             Exporter .env
                         </Button>
-                        <Button
-                            asChild
-                            size="sm"
-                            className="bg-emerald-600 text-white hover:bg-emerald-500"
-                        >
+                        <Button asChild size="sm">
                             <Link
                                 href={`/dashboard/apps/${app.id}/functions/editor`}
                             >
@@ -315,8 +311,8 @@ export default function ClientAppFunctionEnv({
                                 onClick={() => handleSelectScope('global')}
                                 className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-xs font-medium transition ${
                                     selectedScope === 'global'
-                                        ? 'bg-emerald-600 text-white'
-                                        : 'border hover:bg-muted'
+                                        ? 'bg-primary text-primary-foreground shadow-xs'
+                                        : 'bg-muted/40 hover:bg-muted'
                                 }`}
                             >
                                 <div>
@@ -326,7 +322,7 @@ export default function ClientAppFunctionEnv({
                                     <div
                                         className={`text-[11px] ${
                                             selectedScope === 'global'
-                                                ? 'text-emerald-100'
+                                                ? 'opacity-80'
                                                 : 'text-muted-foreground'
                                         }`}
                                     >
@@ -356,7 +352,7 @@ export default function ClientAppFunctionEnv({
                                         onClick={() => handleSelectScope(fn.id)}
                                         className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left font-mono text-xs transition ${
                                             isSelected
-                                                ? 'bg-emerald-600 text-white'
+                                                ? 'bg-primary text-primary-foreground shadow-xs'
                                                 : 'hover:bg-muted'
                                         }`}
                                     >
@@ -417,7 +413,6 @@ export default function ClientAppFunctionEnv({
                                     <Button
                                         type="button"
                                         size="sm"
-                                        className="bg-emerald-600 text-white hover:bg-emerald-500"
                                         onClick={() =>
                                             saveEntriesToBackend(entries)
                                         }
@@ -460,7 +455,7 @@ export default function ClientAppFunctionEnv({
                                     <Button
                                         type="submit"
                                         size="sm"
-                                        className="h-8 w-full bg-emerald-600 text-xs text-white hover:bg-emerald-500"
+                                        className="h-8 w-full text-xs"
                                     >
                                         <Plus className="mr-1 size-3.5" />
                                         Ajouter
@@ -610,10 +605,7 @@ export default function ClientAppFunctionEnv({
                             >
                                 Annuler
                             </Button>
-                            <Button
-                                type="submit"
-                                className="bg-emerald-600 text-white hover:bg-emerald-500"
-                            >
+                            <Button type="submit">
                                 Importer et enregistrer
                             </Button>
                         </DialogFooter>

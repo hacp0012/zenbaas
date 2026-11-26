@@ -205,7 +205,7 @@ export default function ClientAppAuth({
                             </div>
                             <Button
                                 type="submit"
-                                className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
+                                className="w-full"
                                 disabled={newUserForm.processing}
                             >
                                 Ajouter l&apos;utilisateur
@@ -538,7 +538,6 @@ export default function ClientAppAuth({
                             </Button>
                             <Button
                                 type="submit"
-                                className="bg-emerald-600 text-white hover:bg-emerald-500"
                                 disabled={editUserForm.processing}
                             >
                                 {editUserForm.processing

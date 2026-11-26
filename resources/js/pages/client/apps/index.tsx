@@ -193,7 +193,7 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                                 <div className="md:col-span-2">
                                     <Button
                                         type="submit"
-                                        className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
+                                        className="w-full"
                                         disabled={
                                             form.processing || hasReachedQuota
                                         }
@@ -228,7 +228,7 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                         {apps.map((app) => (
                             <Card
                                 key={app.id}
-                                className="flex flex-col justify-between transition hover:border-emerald-500/50"
+                                className="flex flex-col justify-between transition hover:shadow-md"
                             >
                                 <CardHeader>
                                     <div className="flex items-start justify-between gap-2">
@@ -260,7 +260,7 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                                 </CardHeader>
 
                                 <CardContent className="space-y-4">
-                                    <div className="rounded-lg border bg-muted/40 p-2.5">
+                                    <div className="rounded-xl bg-muted/50 p-3">
                                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                                             <span className="flex items-center gap-1 font-medium">
                                                 <KeyRound className="size-3.5 text-emerald-600" />
@@ -273,7 +273,7 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                                                         app.public_key,
                                                     )
                                                 }
-                                                className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:underline"
+                                                className="inline-flex items-center gap-1 text-xs font-medium text-foreground hover:underline"
                                             >
                                                 <Copy className="size-3" />
                                                 {copiedKey === app.public_key
@@ -287,7 +287,7 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                                        <div className="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5">
+                                        <div className="flex items-center gap-1.5 rounded-lg bg-muted/40 px-2.5 py-1.5">
                                             <Database className="size-3.5 text-emerald-500" />
                                             <span>
                                                 BDD :{' '}
@@ -296,20 +296,20 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                                                 )}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5">
+                                        <div className="flex items-center gap-1.5 rounded-lg bg-muted/40 px-2.5 py-1.5">
                                             <Activity className="size-3.5 text-blue-500" />
                                             <span>
                                                 {app.api_calls_count} appels API
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5">
+                                        <div className="flex items-center gap-1.5 rounded-lg bg-muted/40 px-2.5 py-1.5">
                                             <FolderOpen className="size-3.5 text-amber-500" />
                                             <span>
                                                 {app.files_count ?? 0}{' '}
                                                 fichier(s)
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5">
+                                        <div className="flex items-center gap-1.5 rounded-lg bg-muted/40 px-2.5 py-1.5">
                                             <Cpu className="size-3.5 text-purple-500" />
                                             <span>
                                                 {app.functions_count ?? 0}{' '}
@@ -319,10 +319,7 @@ export default function ClientAppsIndex({ apps }: { apps: ZenbaseApp[] }) {
                                     </div>
 
                                     <div className="pt-2">
-                                        <Button
-                                            asChild
-                                            className="w-full bg-emerald-600 text-white hover:bg-emerald-500"
-                                        >
+                                        <Button asChild className="w-full">
                                             <Link
                                                 href={`/dashboard/apps/${app.id}`}
                                             >

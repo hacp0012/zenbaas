@@ -74,6 +74,11 @@ test('app owners can view and update rate limits and advanced settings with stri
             'functions_per_minute' => 90,
             'storage_per_minute' => 45,
             'mcp_per_minute' => 200,
+            'function_mail_per_minute' => 50,
+            'function_mail_per_invocation' => 8,
+            'function_mail_max_recipients' => 20,
+            'function_http_per_invocation' => 12,
+            'function_http_timeout_seconds' => 4,
         ])
         ->assertRedirect()
         ->assertSessionHas('success');
@@ -87,6 +92,11 @@ test('app owners can view and update rate limits and advanced settings with stri
         'functions_per_minute' => 90,
         'storage_per_minute' => 45,
         'mcp_per_minute' => 200,
+        'function_mail_per_minute' => 50,
+        'function_mail_per_invocation' => 8,
+        'function_mail_max_recipients' => 20,
+        'function_http_per_invocation' => 12,
+        'function_http_timeout_seconds' => 4,
     ]);
     expect($app->settings['rate_limit'])->toBe(300);
 
@@ -100,6 +110,11 @@ test('app owners can view and update rate limits and advanced settings with stri
             'functions_per_minute' => 0,
             'storage_per_minute' => 0,
             'mcp_per_minute' => 1,
+            'function_mail_per_minute' => 0,
+            'function_mail_per_invocation' => 99,
+            'function_mail_max_recipients' => 0,
+            'function_http_per_invocation' => 99,
+            'function_http_timeout_seconds' => 10,
         ])
         ->assertSessionHasErrors([
             'key_by',
@@ -108,6 +123,11 @@ test('app owners can view and update rate limits and advanced settings with stri
             'functions_per_minute',
             'storage_per_minute',
             'mcp_per_minute',
+            'function_mail_per_minute',
+            'function_mail_per_invocation',
+            'function_mail_max_recipients',
+            'function_http_per_invocation',
+            'function_http_timeout_seconds',
         ]);
 
     // Owner updates Advanced general metadata

@@ -1,5 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
+import { ArrowRight } from 'lucide-react';
 import InputError from '@/components/input-error';
+import PasskeyVerify from '@/components/passkey-verify';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -10,7 +12,6 @@ import { Spinner } from '@/components/ui/spinner';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
-import PasskeyVerify from '@/components/passkey-verify';
 
 type Props = {
     status?: string;
@@ -20,20 +21,30 @@ type Props = {
 export default function Login({ status, canResetPassword }: Props) {
     return (
         <>
-            <Head title="Log in" />
+            <Head title="Connexion" />
 
-            <PasskeyVerify />
+            {status && (
+                <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-center text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                    {status}
+                </div>
+            )}
+
+            <PasskeyVerify
+                label="Se connecter avec une clé d'accès"
+                loadingLabel="Authentification..."
+                separator="Ou continuer par e-mail"
+            />
 
             <Form
                 {...store.form()}
                 resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
+                className="flex flex-col gap-5"
             >
                 {({ processing, errors }) => (
                     <>
-                        <div className="grid gap-6">
+                        <div className="grid gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email">Adresse e-mail</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -42,21 +53,24 @@ export default function Login({ status, canResetPassword }: Props) {
                                     autoFocus
                                     tabIndex={1}
                                     autoComplete="email"
-                                    placeholder="email@example.com"
+                                    placeholder="vous@exemple.com"
+                                    className="h-10 rounded-xl bg-card/60 transition-colors focus-visible:border-emerald-500/60"
                                 />
                                 <InputError message={errors.email} />
                             </div>
 
                             <div className="grid gap-2">
                                 <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
+                                    <Label htmlFor="password">
+                                        Mot de passe
+                                    </Label>
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
-                                            className="ml-auto text-sm"
+                                            className="ml-auto text-xs text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400"
                                             tabIndex={5}
                                         >
-                                            Forgot your password?
+                                            Mot de passe oublié ?
                                         </TextLink>
                                     )}
                                 </div>
@@ -66,52 +80,63 @@ export default function Login({ status, canResetPassword }: Props) {
                                     required
                                     tabIndex={2}
                                     autoComplete="current-password"
-                                    placeholder="Password"
+                                    placeholder="Votre mot de passe"
+                                    className="h-10 rounded-xl bg-card/60 transition-colors focus-visible:border-emerald-500/60"
                                 />
                                 <InputError message={errors.password} />
                             </div>
 
-                            <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-2.5 pt-1">
                                 <Checkbox
                                     id="remember"
                                     name="remember"
                                     tabIndex={3}
                                 />
-                                <Label htmlFor="remember">Remember me</Label>
+                                <Label
+                                    htmlFor="remember"
+                                    className="text-sm font-normal text-muted-foreground"
+                                >
+                                    Rester connecté sur cet appareil
+                                </Label>
                             </div>
 
                             <Button
                                 type="submit"
-                                className="mt-4 w-full"
+                                className="mt-2 h-10 w-full rounded-xl font-medium"
                                 tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
                             >
-                                {processing && <Spinner />}
-                                Log in
+                                {processing ? (
+                                    <Spinner />
+                                ) : (
+                                    <ArrowRight className="size-4" />
+                                )}
+                                Se connecter
                             </Button>
                         </div>
 
-                        <div className="text-center text-sm text-muted-foreground">
-                            Don't have an account?{' '}
-                            <TextLink href={register()} tabIndex={5}>
-                                Sign up
+                        <div className="border-t border-border/70 pt-5 text-center text-sm text-muted-foreground">
+                            Pas encore de compte ?{' '}
+                            <TextLink
+                                href={register()}
+                                tabIndex={5}
+                                className="font-medium text-emerald-700 decoration-emerald-500/40 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300"
+                            >
+                                Créer un compte
                             </TextLink>
                         </div>
                     </>
                 )}
             </Form>
-
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
         </>
     );
 }
 
 Login.layout = {
-    title: 'Log in to your account',
-    description: 'Enter your email and password below to log in',
+    title: 'Bon retour sur Zenbase',
+    description:
+        'Connectez-vous pour accéder à vos applications et vos projets.',
+    variant: 'showcase',
+    mode: 'login',
 };

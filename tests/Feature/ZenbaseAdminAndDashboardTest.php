@@ -95,6 +95,103 @@ test('admin users can view the global dashboard and manage client accounts', fun
     $this->assertDatabaseMissing('users', ['id' => $client->id]);
 });
 
+test('admin users index supports filtering by search, role, status, sorting, and pagination', function () {
+    $admin = User::factory()->admin()->create([
+        'name' => 'Root SuperAdmin',
+        'email' => 'root@zenbase.test',
+    ]);
+
+    User::factory()->create([
+        'name' => 'Alice Active',
+        'email' => 'alice@zenbase.test',
+        'is_suspended' => false,
+    ]);
+
+    User::factory()->suspended()->create([
+        'name' => 'Bob Suspended',
+        'email' => 'bob@zenbase.test',
+    ]);
+
+    User::factory()->expired()->create([
+        'name' => 'Charlie Expired',
+        'email' => 'charlie@zenbase.test',
+    ]);
+
+    User::factory()->count(12)->create();
+
+    // Default pagination (15 per page, 16 total users -> page 1 has 15, page 2 has 1)
+    $this->actingAs($admin)
+        ->get(route('admin.users.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/users/index')
+            ->where('users.total', 16)
+            ->where('users.page', 1)
+            ->where('users.last_page', 2)
+            ->where('users.per_page', 15)
+            ->has('users.items', 15)
+            ->where('stats.total', 16)
+            ->where('stats.admins', 1)
+            ->where('stats.suspended', 2)
+            ->where('stats.expired', 1)
+        );
+
+    // Page 2 with custom per_page=10
+    $this->actingAs($admin)
+        ->get(route('admin.users.index', ['per_page' => 10, 'page' => 2]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('users.page', 2)
+            ->where('users.last_page', 2)
+            ->where('users.per_page', 10)
+            ->has('users.items', 6)
+        );
+
+    // Search by name / email
+    $this->actingAs($admin)
+        ->get(route('admin.users.index', ['search' => 'alice@zenbase']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('users.total', 1)
+            ->where('users.items.0.email', 'alice@zenbase.test')
+        );
+
+    // Role filter (admin only)
+    $this->actingAs($admin)
+        ->get(route('admin.users.index', ['role' => 'admin']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('users.total', 1)
+            ->where('users.items.0.email', 'root@zenbase.test')
+        );
+
+    // Status filter (expired only)
+    $this->actingAs($admin)
+        ->get(route('admin.users.index', ['status' => 'expired']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('users.total', 1)
+            ->where('users.items.0.email', 'charlie@zenbase.test')
+        );
+
+    // Status filter (suspended includes manually suspended + expired)
+    $this->actingAs($admin)
+        ->get(route('admin.users.index', ['status' => 'suspended']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('users.total', 2)
+        );
+
+    // Sort by name ascending
+    $this->actingAs($admin)
+        ->get(route('admin.users.index', ['role' => 'client', 'status' => 'suspended', 'sort' => 'name', 'direction' => 'asc']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('users.items.0.name', 'Bob Suspended')
+            ->where('users.items.1.name', 'Charlie Expired')
+        );
+});
+
 test('suspended or expired users are redirected to the account suspended page when accessing the client dashboard', function () {
     $suspendedUser = User::factory()->suspended()->create();
 

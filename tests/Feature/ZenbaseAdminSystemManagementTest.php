@@ -34,6 +34,11 @@ test('admin can configure global default settings and new users and apps inherit
             ->component('admin/settings/configs')
             ->where('configs.default_user_max_apps', 1)
             ->where('configs.default_api_rate_limit', 120)
+            ->where('configs.default_function_mail_per_minute', 30)
+            ->where('configs.default_function_mail_per_invocation', 5)
+            ->where('configs.default_function_mail_max_recipients', 10)
+            ->where('configs.default_function_http_per_invocation', 5)
+            ->where('configs.default_function_http_timeout_seconds', 3)
         );
 
     $this->actingAs($admin)
@@ -48,6 +53,11 @@ test('admin can configure global default settings and new users and apps inherit
             'default_functions_rate_limit' => 90,
             'default_storage_rate_limit' => 50,
             'default_mcp_rate_limit' => 150,
+            'default_function_mail_per_minute' => 60,
+            'default_function_mail_per_invocation' => 8,
+            'default_function_mail_max_recipients' => 20,
+            'default_function_http_per_invocation' => 12,
+            'default_function_http_timeout_seconds' => 4,
         ])
         ->assertRedirect()
         ->assertSessionHas('success');
@@ -58,6 +68,11 @@ test('admin can configure global default settings and new users and apps inherit
     expect($saved['default_user_max_apps'])->toBe(4);
     expect($saved['default_api_rate_limit'])->toBe(300);
     expect($saved['default_rate_limit_key_by'])->toBe('ip');
+    expect($saved['default_function_mail_per_minute'])->toBe(60);
+    expect($saved['default_function_mail_per_invocation'])->toBe(8);
+    expect($saved['default_function_mail_max_recipients'])->toBe(20);
+    expect($saved['default_function_http_per_invocation'])->toBe(12);
+    expect($saved['default_function_http_timeout_seconds'])->toBe(4);
 
     // Newly self-registered user inherits platform defaults
     $newUser = app(CreateNewUser::class)->create([
@@ -74,7 +89,7 @@ test('admin can configure global default settings and new users and apps inherit
     // Mark email as verified to pass the dashboard 'verified' middleware
     $newUser->forceFill(['email_verified_at' => now()])->save();
 
-    // Newly created app inherits default rate limit settings
+    // Newly created app inherits default rate limit settings including Web Functions mail & HTTP quotas
     $this->actingAs($newUser)
         ->post(route('dashboard.apps.store'), [
             'name' => 'App Héritée',
@@ -84,11 +99,47 @@ test('admin can configure global default settings and new users and apps inherit
         ->assertSessionHas('success');
 
     $createdApp = App::query()->where('user_id', $newUser->id)->firstOrFail();
-    expect($createdApp->rateLimitSettings()['api_per_minute'])->toBe(300);
-    expect($createdApp->rateLimitSettings()['key_by'])->toBe('ip');
-    expect($createdApp->rateLimitSettings()['auth_per_minute'])->toBe(20);
+    $appLimits = $createdApp->rateLimitSettings();
+    expect($appLimits['api_per_minute'])->toBe(300);
+    expect($appLimits['key_by'])->toBe('ip');
+    expect($appLimits['auth_per_minute'])->toBe(20);
+    expect($appLimits['function_mail_per_minute'])->toBe(60);
+    expect($appLimits['function_mail_per_invocation'])->toBe(8);
+    expect($appLimits['function_mail_max_recipients'])->toBe(20);
+    expect($appLimits['function_http_per_invocation'])->toBe(12);
+    expect($appLimits['function_http_timeout_seconds'])->toBe(4);
 
     app(TenantManagerService::class)->deleteDatabase($createdApp);
+});
+
+test('admin global config validation rejects out-of-range web function mail and http limits', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->put(route('admin.settings.configs.update'), [
+            'default_user_expiration_days' => null,
+            'default_user_max_storage_mb' => 100,
+            'default_user_max_apps' => 1,
+            'default_rate_limit_enabled' => true,
+            'default_rate_limit_key_by' => 'app',
+            'default_api_rate_limit' => 120,
+            'default_auth_rate_limit' => 30,
+            'default_functions_rate_limit' => 60,
+            'default_storage_rate_limit' => 60,
+            'default_mcp_rate_limit' => 120,
+            'default_function_mail_per_minute' => 0,
+            'default_function_mail_per_invocation' => 99,
+            'default_function_mail_max_recipients' => 100,
+            'default_function_http_per_invocation' => 50,
+            'default_function_http_timeout_seconds' => 10,
+        ])
+        ->assertSessionHasErrors([
+            'default_function_mail_per_minute',
+            'default_function_mail_per_invocation',
+            'default_function_mail_max_recipients',
+            'default_function_http_per_invocation',
+            'default_function_http_timeout_seconds',
+        ]);
 });
 
 test('admin can configure global storage quota and uploads enforce the system-wide limit', function () {

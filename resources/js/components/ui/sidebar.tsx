@@ -303,7 +303,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
       data-slot="sidebar-inset"
       className={cn(
         "bg-background relative flex max-w-full min-h-svh flex-1 flex-col",
-        "peer-data-[variant=inset]:m-2 peer-data-[variant=inset]:h-[calc(100svh-(--spacing(4)))] peer-data-[variant=inset]:min-h-0 peer-data-[variant=inset]:overflow-hidden peer-data-[variant=inset]:rounded-3xl peer-data-[variant=inset]:border peer-data-[variant=inset]:border-border/80 peer-data-[variant=inset]:shadow-none",
+        "peer-data-[variant=inset]:m-2 peer-data-[variant=inset]:h-[calc(100svh-(--spacing(4)))] peer-data-[variant=inset]:min-h-0 peer-data-[variant=inset]:overflow-hidden peer-data-[variant=inset]:rounded-3xl peer-data-[variant=inset]:shadow-xs",
         "sm:peer-data-[variant=inset]:m-2.5 sm:peer-data-[variant=inset]:h-[calc(100svh-(--spacing(5)))]",
         "md:peer-data-[variant=inset]:my-3 md:peer-data-[variant=inset]:mr-3 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:h-[calc(100svh-(--spacing(6)))] md:peer-data-[variant=inset]:rounded-[1.75rem]",
         "md:peer-data-[variant=inset]:peer-data-[collapsible=offcanvas]:peer-data-[state=collapsed]:ml-3",

@@ -1,6 +1,14 @@
-import { Head, router } from '@inertiajs/react';
-import { AlertOctagon, CalendarClock, LogOut, Mail, ShieldAlert } from 'lucide-react';
+import { Head } from '@inertiajs/react';
+import {
+    AlertOctagon,
+    CalendarClock,
+    LogOut,
+    Mail,
+    ShieldAlert,
+} from 'lucide-react';
+import { useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import { LogoutConfirmDialog } from '@/components/logout-confirm-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,7 +18,6 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { logout } from '@/routes';
 
 type AccountSuspendedProps = {
     email: string;
@@ -25,6 +32,7 @@ export default function AccountSuspended({
     isExpired,
     expiresAt,
 }: AccountSuspendedProps) {
+    const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
     const formattedDate = expiresAt
         ? new Date(expiresAt).toLocaleString('fr-FR', {
               dateStyle: 'long',
@@ -37,8 +45,8 @@ export default function AccountSuspended({
             <Head title="Compte Suspendu — Zenbase BaaS" />
             <div className="flex h-svh flex-col items-center justify-center overflow-hidden bg-sidebar px-4 py-6">
                 <div className="mb-6 flex shrink-0 items-center gap-2.5">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white">
-                        <AppLogoIcon className="size-6 text-white" />
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-[#081a14] text-emerald-500 ring-1 ring-emerald-500/25 ring-inset">
+                        <AppLogoIcon className="size-6 text-emerald-500" />
                     </div>
                     <span className="text-xl font-bold tracking-tight">
                         Zenbase BaaS
@@ -51,7 +59,10 @@ export default function AccountSuspended({
                             <AlertOctagon className="size-7" />
                         </div>
                         <div className="flex justify-center">
-                            <Badge variant="destructive" className="px-3 py-0.5 text-xs">
+                            <Badge
+                                variant="destructive"
+                                className="px-3 py-0.5 text-xs"
+                            >
                                 {isExpired
                                     ? "Délai d'autorisation expiré"
                                     : 'Compte suspendu'}
@@ -61,9 +72,12 @@ export default function AccountSuspended({
                             Votre compte Zenbase a été suspendu
                         </CardTitle>
                         <CardDescription className="text-sm leading-relaxed">
-                            Bonjour <span className="font-semibold text-foreground">{name}</span> (
-                            <span className="font-mono text-xs">{email}</span>),
-                            votre accès à la console développeur Zenbase est
+                            Bonjour{' '}
+                            <span className="font-semibold text-foreground">
+                                {name}
+                            </span>{' '}
+                            (<span className="font-mono text-xs">{email}</span>
+                            ), votre accès à la console développeur Zenbase est
                             actuellement restreint.
                         </CardDescription>
                     </CardHeader>
@@ -119,7 +133,7 @@ export default function AccountSuspended({
                                 type="button"
                                 variant="outline"
                                 className="w-full"
-                                onClick={() => router.post(logout().url)}
+                                onClick={() => setLogoutDialogOpen(true)}
                             >
                                 <LogOut className="mr-2 size-4" />
                                 Se déconnecter
@@ -128,6 +142,11 @@ export default function AccountSuspended({
                     </CardContent>
                 </Card>
             </div>
+
+            <LogoutConfirmDialog
+                open={logoutDialogOpen}
+                onOpenChange={setLogoutDialogOpen}
+            />
         </>
     );
 }

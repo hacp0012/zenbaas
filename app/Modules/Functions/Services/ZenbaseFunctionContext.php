@@ -20,6 +20,10 @@ class ZenbaseFunctionContext
 
     public object $auth;
 
+    public FunctionMailService $mail;
+
+    public FunctionHttpClient $http;
+
     /**
      * @param  array<string, string>  $envVariables
      */
@@ -30,8 +34,15 @@ class ZenbaseFunctionContext
         array $envVariables = [],
         ?TenantUser $tenantUser = null,
     ) {
+        $rateLimits = $app->rateLimitSettings();
+
         $this->database = $databaseEngine;
         $this->env = $envVariables;
+        $this->mail = new FunctionMailService($app);
+        $this->http = new FunctionHttpClient(
+            maxRequestsPerInvocation: $rateLimits['function_http_per_invocation'],
+            maxTimeoutSeconds: $rateLimits['function_http_timeout_seconds'],
+        );
 
         $this->storage = new class($app, $storageManager)
         {

@@ -94,11 +94,7 @@ export default function ClientAppSkills({
                                         Configurer le Serveur MCP
                                     </Link>
                                 </Button>
-                                <Button
-                                    asChild
-                                    size="sm"
-                                    className="bg-emerald-600 text-white hover:bg-emerald-500"
-                                >
+                                <Button asChild size="sm">
                                     <a href={downloadSkillsBundle.url()}>
                                         <FolderArchive className="mr-1.5 size-3.5" />
                                         Tout télécharger (.zip)
@@ -248,10 +244,7 @@ export default function ClientAppSkills({
                             Fermer
                         </Button>
                         {previewSkill && (
-                            <Button
-                                asChild
-                                className="bg-emerald-600 text-white hover:bg-emerald-500"
-                            >
+                            <Button asChild>
                                 <a href={downloadSkill.url(previewSkill.slug)}>
                                     <Download className="mr-1.5 size-3.5" />
                                     Télécharger SKILL.md

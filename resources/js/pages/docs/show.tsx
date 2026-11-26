@@ -327,8 +327,8 @@ export default function DocsShow({
                     <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3.5">
                         <div className="flex items-center gap-4">
                             <Link href={home()} className="flex items-center gap-2.5">
-                                <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
-                                    <AppLogoIcon className="size-5 text-white" />
+                                <div className="flex size-9 items-center justify-center rounded-xl bg-[#081a14] text-emerald-500 ring-1 ring-emerald-500/25 ring-inset">
+                                    <AppLogoIcon className="size-5 text-emerald-500" />
                                 </div>
                                 <div>
                                     <span className="text-base font-bold tracking-tight">
@@ -388,7 +388,7 @@ export default function DocsShow({
                                 ) : (
                                     <Link
                                         href={dashboard()}
-                                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500"
+                                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
                                     >
                                         <Terminal className="size-3.5" />
                                         Mon Dashboard
@@ -397,7 +397,7 @@ export default function DocsShow({
                             ) : (
                                 <Link
                                     href={login()}
-                                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500"
+                                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
                                 >
                                     Espace Développeur
                                 </Link>
@@ -445,9 +445,9 @@ export default function DocsShow({
                                                         prefetch
                                                         className={`flex min-w-0 flex-1 items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${
                                                             isActive && !isSdkGroup
-                                                                ? 'bg-emerald-600 font-semibold text-white shadow-xs'
+                                                                ? 'bg-primary font-semibold text-primary-foreground shadow-xs'
                                                                 : isActive || hasActiveChild
-                                                                  ? 'bg-emerald-500/10 font-semibold text-emerald-700 dark:text-emerald-300'
+                                                                  ? 'bg-muted font-semibold text-foreground'
                                                                   : 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
                                                         }`}
                                                     >
@@ -487,7 +487,7 @@ export default function DocsShow({
                                                             prefetch
                                                             className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition ${
                                                                 isActive
-                                                                    ? 'bg-emerald-600 font-semibold text-white shadow-xs'
+                                                                    ? 'bg-primary font-semibold text-primary-foreground shadow-xs'
                                                                     : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/70'
                                                             }`}
                                                         >
@@ -510,7 +510,7 @@ export default function DocsShow({
                                                                     prefetch
                                                                     className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition ${
                                                                         isChildActive
-                                                                            ? 'bg-emerald-600 font-semibold text-white shadow-xs'
+                                                                            ? 'bg-primary font-semibold text-primary-foreground shadow-xs'
                                                                             : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/70'
                                                                     }`}
                                                                 >

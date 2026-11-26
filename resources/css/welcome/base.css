@@ -1,0 +1,192 @@
+/* Zenbase Landing Page — Independent Base & Typography Rules */
+html,
+body {
+    overflow-x: clip;
+}
+
+.zb-landing {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: clip;
+    background-color: var(--zb-surface);
+    color: var(--zb-on-surface);
+    font-family: var(--zb-font-body);
+    font-size: 14px;
+    line-height: 22px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.zb-landing *,
+.zb-landing *::before,
+.zb-landing *::after {
+    box-sizing: border-box;
+}
+
+.zb-landing ::selection {
+    background-color: var(--zb-glow-sky);
+    color: var(--zb-on-surface);
+}
+
+:where(.zb-landing) a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.zb-landing button {
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.zb-landing :focus-visible {
+    outline: 2px solid var(--zb-accent);
+    outline-offset: 2px;
+}
+
+.zb-landing h1,
+.zb-landing h2,
+.zb-landing h3,
+.zb-landing p {
+    margin: 0;
+}
+
+.zb-landing svg {
+    display: block;
+    flex-shrink: 0;
+}
+
+.zb-landing [hidden] {
+    display: none !important;
+}
+
+/* Typography Token Utilities */
+.zb-display-lg {
+    font-family: var(--zb-font-display);
+    font-size: 32px;
+    line-height: 38px;
+    letter-spacing: -0.75px;
+    font-weight: 700;
+    text-wrap: balance;
+}
+
+@media (min-width: 768px) {
+    .zb-display-lg {
+        font-size: 56px;
+        line-height: 62px;
+        letter-spacing: -1.5px;
+    }
+}
+
+.zb-headline-lg {
+    font-family: var(--zb-font-display);
+    font-size: 28px;
+    line-height: 34px;
+    letter-spacing: -0.5px;
+    font-weight: 700;
+    text-wrap: balance;
+}
+
+@media (min-width: 768px) {
+    .zb-headline-lg {
+        font-size: 40px;
+        line-height: 46px;
+        letter-spacing: -1px;
+    }
+}
+
+.zb-headline-sm {
+    font-family: var(--zb-font-display);
+    font-size: 24px;
+    line-height: 30px;
+    letter-spacing: -0.5px;
+    font-weight: 600;
+    text-wrap: balance;
+}
+
+.zb-title-lg {
+    font-family: var(--zb-font-body);
+    font-size: 18px;
+    line-height: 26px;
+    letter-spacing: -0.25px;
+    font-weight: 600;
+}
+
+.zb-title-md {
+    font-family: var(--zb-font-body);
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: -0.1px;
+    font-weight: 600;
+}
+
+.zb-body-lg {
+    font-family: var(--zb-font-body);
+    font-size: 16px;
+    line-height: 26px;
+    font-weight: 400;
+    text-wrap: pretty;
+}
+
+.zb-body-md {
+    font-family: var(--zb-font-body);
+    font-size: 14px;
+    line-height: 22px;
+    font-weight: 400;
+    text-wrap: pretty;
+}
+
+.zb-body-sm {
+    font-family: var(--zb-font-body);
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 400;
+    text-wrap: pretty;
+}
+
+.zb-label-lg {
+    font-family: var(--zb-font-body);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+}
+
+.zb-label-md {
+    font-family: var(--zb-font-body);
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+}
+
+.zb-label-sm {
+    font-family: var(--zb-font-body);
+    font-size: 11px;
+    line-height: 14px;
+    letter-spacing: 0.25px;
+    font-weight: 600;
+}
+
+.zb-code-sm {
+    font-family: var(--zb-font-code);
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 500;
+}
+
+.zb-tabular {
+    font-variant-numeric: tabular-nums;
+}
+
+.zb-muted {
+    color: var(--zb-on-surface-variant);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .zb-landing *,
+    .zb-landing *::before,
+    .zb-landing *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

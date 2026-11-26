@@ -247,6 +247,14 @@ function ensurePhpTokenizerAndCompletions(monacoInstance: typeof monaco): void {
             'email',
             'getSchema',
             'setSchema',
+            'send',
+            'queue',
+            'withHeaders',
+            'withToken',
+            'timeout',
+            'post',
+            'patch',
+            'request',
         ],
         tokenizer: {
             root: [
@@ -285,7 +293,10 @@ function ensurePhpTokenizerAndCompletions(monacoInstance: typeof monaco): void {
                 [/'([^'\\]|\\.)*$/, 'string.invalid'],
                 [/"/, 'string', '@stringDouble'],
                 [/'/, 'string', '@stringSingle'],
-                [/->|=>|::|===|!==|==|!=|<=|>=|\?\?|\+|\-|\*|\/|=|<|>|!|&&|\|\|/, 'operator'],
+                [
+                    /->|=>|::|===|!==|==|!=|<=|>=|\?\?|\+|-|\*|\/|=|<|>|!|&&|\|\|/,
+                    'operator',
+                ],
                 [/[{}()[\]]/, '@brackets'],
                 [/[;,.]/, 'delimiter'],
             ],
@@ -424,7 +435,7 @@ function ensurePhpTokenizerAndCompletions(monacoInstance: typeof monaco): void {
                 {
                     label: '$context->storage->delete',
                     kind: monacoInstance.languages.CompletionItemKind.Method,
-                    insertText: "\\$context->storage->delete(${1:\\$fileId})",
+                    insertText: '\\$context->storage->delete(${1:\\$fileId})',
                     insertTextRules:
                         monacoInstance.languages.CompletionItemInsertTextRule
                             .InsertAsSnippet,
@@ -462,6 +473,89 @@ function ensurePhpTokenizerAndCompletions(monacoInstance: typeof monaco): void {
                     detail: 'Zenbase Auth — Email Utilisateur',
                     documentation:
                         "Retourne l'adresse e-mail de l'utilisateur authentifié ou null.",
+                },
+                {
+                    label: '$context->mail->send',
+                    kind: monacoInstance.languages.CompletionItemKind.Snippet,
+                    insertText:
+                        "\\$context->mail->send([\n\t'to' => ${1:'client@exemple.com'},\n\t'subject' => ${2:'Bienvenue !'},\n\t'html' => ${3:'<p>Bonjour !</p>'},\n])",
+                    insertTextRules:
+                        monacoInstance.languages.CompletionItemInsertTextRule
+                            .InsertAsSnippet,
+                    detail: 'Zenbase Mail — Envoyer un e-mail',
+                    documentation:
+                        "Envoie immédiatement un e-mail sécurisé (max 5/invocation, 10 destinataires, 30/min par application).",
+                },
+                {
+                    label: '$context->mail->queue',
+                    kind: monacoInstance.languages.CompletionItemKind.Snippet,
+                    insertText:
+                        "\\$context->mail->queue([\n\t'to' => ${1:'client@exemple.com'},\n\t'subject' => ${2:'Notification'},\n\t'text' => ${3:'Votre message texte'},\n])",
+                    insertTextRules:
+                        monacoInstance.languages.CompletionItemInsertTextRule
+                            .InsertAsSnippet,
+                    detail: 'Zenbase Mail — Envoyer en file d’attente',
+                    documentation:
+                        "Met l'e-mail en file d'attente (recommandé pour ne pas ralentir l'invocation).",
+                },
+                {
+                    label: '$context->http->get',
+                    kind: monacoInstance.languages.CompletionItemKind.Method,
+                    insertText:
+                        "\\$context->http->get('${1:https://api.exemple.com/v1/resource}', [${2}])",
+                    insertTextRules:
+                        monacoInstance.languages.CompletionItemInsertTextRule
+                            .InsertAsSnippet,
+                    detail: 'Zenbase HTTP — Requête HTTPS GET (anti-SSRF)',
+                    documentation:
+                        "Exécute une requête HTTPS GET sécurisée (port 443, sans redirection, protection anti-SSRF) et retourne ['status', 'ok', 'body', 'json', 'headers'].",
+                },
+                {
+                    label: '$context->http->post',
+                    kind: monacoInstance.languages.CompletionItemKind.Snippet,
+                    insertText:
+                        "\\$context->http\n\t->withToken(\\$context->env['${1:API_KEY}'] ?? '')\n\t->post('${2:https://api.exemple.com/v1/endpoint}', [\n\t\t'${3:key}' => ${4:'value'},\n\t])",
+                    insertTextRules:
+                        monacoInstance.languages.CompletionItemInsertTextRule
+                            .InsertAsSnippet,
+                    detail: 'Zenbase HTTP — Requête HTTPS POST (anti-SSRF)',
+                    documentation:
+                        "Exécute une requête HTTPS POST JSON sécurisée (max 5 requêtes/invocation, timeout 1-4s).",
+                },
+                {
+                    label: '$context->http->withToken',
+                    kind: monacoInstance.languages.CompletionItemKind.Method,
+                    insertText:
+                        "\\$context->http->withToken(\\$context->env['${1:API_TOKEN}'] ?? '')",
+                    insertTextRules:
+                        monacoInstance.languages.CompletionItemInsertTextRule
+                            .InsertAsSnippet,
+                    detail: 'Zenbase HTTP — Authentification Bearer',
+                    documentation:
+                        "Ajoute l'en-tête Authorization: Bearer <token> sur une instance clonée du client HTTP.",
+                },
+                {
+                    label: '$context->http->withHeaders',
+                    kind: monacoInstance.languages.CompletionItemKind.Method,
+                    insertText:
+                        "\\$context->http->withHeaders(['${1:X-Custom-Header}' => ${2:'value'}])",
+                    insertTextRules:
+                        monacoInstance.languages.CompletionItemInsertTextRule
+                            .InsertAsSnippet,
+                    detail: 'Zenbase HTTP — En-têtes personnalisés',
+                    documentation:
+                        'Ajoute des en-têtes HTTP personnalisés sur une instance clonée du client HTTP.',
+                },
+                {
+                    label: '$context->http->timeout',
+                    kind: monacoInstance.languages.CompletionItemKind.Method,
+                    insertText: '\\$context->http->timeout(${1:3})',
+                    insertTextRules:
+                        monacoInstance.languages.CompletionItemInsertTextRule
+                            .InsertAsSnippet,
+                    detail: 'Zenbase HTTP — Délai maximal (1 à 4 s)',
+                    documentation:
+                        "Définit le timeout en secondes (borné entre 1 et 4 secondes).",
                 },
                 {
                     label: "$context->env['KEY']",
@@ -620,6 +714,8 @@ export type MonacoCodeEditorProps = {
     language?: 'php' | 'json' | 'typescript' | 'javascript' | 'markdown';
     height?: string | number;
     readOnly?: boolean;
+    edgeToEdge?: boolean;
+    compact?: boolean;
     className?: string;
     schemaFields?: ZenbaseSchemaField[] | null;
     envKeys?: string[];
@@ -631,12 +727,16 @@ export function MonacoCodeEditor({
     language = 'json',
     height = 260,
     readOnly = false,
+    edgeToEdge = false,
+    compact = false,
     className = '',
     schemaFields = null,
     envKeys = [],
 }: MonacoCodeEditorProps) {
     const { resolvedAppearance } = useAppearance();
     const editorId = useId();
+    const safeEditorId = editorId.replace(/[^a-zA-Z0-9_-]/g, '');
+    const modelPath = `zenbase://editor/${safeEditorId}.${language}`;
     const activeTheme =
         resolvedAppearance === 'dark'
             ? 'zenbase-monokai-dark'
@@ -709,8 +809,8 @@ export function MonacoCodeEditor({
                     enableSchemaRequest: false,
                     schemas: [
                         {
-                            uri: 'http://zenbase.local/schemas/active-collection.json',
-                            fileMatch: ['*'],
+                            uri: `http://zenbase.local/schemas/${safeEditorId}.json`,
+                            fileMatch: [modelPath],
                             schema: {
                                 type: 'object',
                                 properties,
@@ -804,42 +904,19 @@ export function MonacoCodeEditor({
                 disposableRef.current = null;
             }
         };
-    }, [language, schemaFields, envKeys]);
+    }, [language, schemaFields, envKeys, modelPath, safeEditorId]);
 
     return (
         <div
-            className={`overflow-hidden rounded-xl border border-zinc-300 shadow-xs dark:border-zinc-800 ${className}`}
+            className={`overflow-hidden ${
+                edgeToEdge
+                    ? 'h-full w-full rounded-none border-0'
+                    : 'rounded-lg'
+            } ${className}`}
         >
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 bg-zinc-100/90 px-3.5 py-1.5 text-[11px] dark:border-zinc-800 dark:bg-[#191a17]">
-                <div className="flex items-center gap-2">
-                    <span className="size-2.5 rounded-full bg-[#F92672]" />
-                    <span className="size-2.5 rounded-full bg-[#FD971F]" />
-                    <span className="size-2.5 rounded-full bg-[#A6E22E]" />
-                    <span className="ml-1.5 font-mono font-semibold tracking-wider text-zinc-600 uppercase dark:text-zinc-400">
-                        Monaco · {language.toUpperCase()}
-                    </span>
-                    {language === 'json' &&
-                        schemaFields &&
-                        schemaFields.length > 0 && (
-                            <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 font-mono text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
-                                Autocomplétion Schéma ({schemaFields.length}{' '}
-                                champs)
-                            </span>
-                        )}
-                    {language === 'php' && (
-                        <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 font-mono text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
-                            Coloration & IntelliSense PHP
-                        </span>
-                    )}
-                </div>
-                <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
-                    Monokai ({resolvedAppearance === 'dark' ? 'Sombre' : 'Clair'}
-                    ) · JetBrains Mono
-                </span>
-            </div>
-
             <Editor
                 key={editorId}
+                path={modelPath}
                 height={height}
                 language={language}
                 value={value}
@@ -857,24 +934,45 @@ export function MonacoCodeEditor({
                     readOnly,
                     fontFamily:
                         "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-                    fontSize: 13,
-                    lineHeight: 21,
+                    fontSize: compact ? 12 : 13,
+                    lineHeight: compact ? 20 : 21,
                     fontLigatures: true,
                     minimap: { enabled: false },
                     scrollBeyondLastLine: false,
                     automaticLayout: true,
                     tabSize: 2,
                     wordWrap: 'on',
-                    padding: { top: 12, bottom: 12 },
-                    renderLineHighlight: 'all',
+                    padding: compact
+                        ? { top: 6, bottom: 6 }
+                        : { top: 12, bottom: 12 },
+                    renderLineHighlight: compact ? 'gutter' : 'all',
                     smoothScrolling: true,
                     cursorBlinking: 'smooth',
+                    autoClosingBrackets: 'always',
+                    autoClosingQuotes: 'always',
+                    formatOnPaste: true,
                     suggestOnTriggerCharacters: true,
                     quickSuggestions: {
                         other: true,
                         comments: false,
                         strings: true,
                     },
+                    ...(compact
+                        ? {
+                              lineNumbersMinChars: 2,
+                              lineDecorationsWidth: 6,
+                              glyphMargin: false,
+                              folding: false,
+                              overviewRulerLanes: 0,
+                              overviewRulerBorder: false,
+                              hideCursorInOverviewRuler: true,
+                              scrollbar: {
+                                  verticalScrollbarSize: 8,
+                                  horizontalScrollbarSize: 8,
+                                  alwaysConsumeMouseWheel: false,
+                              },
+                          }
+                        : {}),
                 }}
             />
         </div>

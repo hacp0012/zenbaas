@@ -310,8 +310,8 @@ export function ClientAppSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
                             <Link href={baseAppUrl} prefetch>
-                                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-xs">
-                                    <AppLogoIcon className="size-5 text-white" />
+                                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-[#081a14] text-emerald-500 ring-1 ring-emerald-500/25 ring-inset">
+                                    <AppLogoIcon className="size-5 text-emerald-500" />
                                 </div>
                                 <div className="grid flex-1 text-left text-sm leading-tight">
                                     <span className="truncate font-semibold">
