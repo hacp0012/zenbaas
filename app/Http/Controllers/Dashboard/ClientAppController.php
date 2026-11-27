@@ -14,6 +14,7 @@ use App\Modules\Functions\Models\AppFunction;
 use App\Modules\Storage\Services\StorageManagerService;
 use App\Services\AppLogService;
 use App\Services\TenantManagerService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -209,36 +210,102 @@ class ClientAppController extends Controller
     }
 
     /**
-     * Display the Authentication & Tenant Users management page for a specific application.
+     * Display the Authentication & Tenant Users management page with filtering & pagination.
      */
     public function auth(Request $request, App $app): Response
     {
         $this->ensureAppOwnership($request, $app);
         $context = $this->buildBaseAppContext($app);
 
-        $search = $request->string('search')->toString();
-        $tenantUsersQuery = TenantUser::query()->orderByDesc('created_at')->orderByDesc('id');
+        $search = trim((string) $request->query('search', ''));
+        $authMethod = (string) $request->query('auth_method', 'all');
+        $status = (string) $request->query('status', 'all');
+        $sort = (string) $request->query('sort', 'created_at');
+        $direction = strtolower((string) $request->query('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $perPage = (int) $request->query('per_page', 15);
+
+        if (! in_array($authMethod, ['all', 'password', 'otp'], true)) {
+            $authMethod = 'all';
+        }
+
+        if (! in_array($status, ['all', 'active', 'blocked'], true)) {
+            $status = 'all';
+        }
+
+        if (! in_array($sort, ['created_at', 'name', 'email'], true)) {
+            $sort = 'created_at';
+        }
+
+        if (! in_array($perPage, [10, 15, 25, 50], true)) {
+            $perPage = 15;
+        }
+
+        $tenantUsersQuery = TenantUser::query();
 
         if ($search !== '') {
-            $tenantUsersQuery->where(function ($query) use ($search): void {
-                $query->where('email', 'like', '%'.$search.'%')
-                    ->orWhere('name', 'like', '%'.$search.'%');
+            $like = '%'.mb_strtolower($search).'%';
+            $tenantUsersQuery->where(function (Builder $query) use ($like): void {
+                $query->whereRaw('LOWER(email) LIKE ?', [$like])
+                    ->orWhereRaw("LOWER(COALESCE(name, '')) LIKE ?", [$like])
+                    ->orWhereRaw('LOWER(id) LIKE ?', [$like]);
             });
         }
 
-        $tenantUsers = $tenantUsersQuery->get()->map(fn (TenantUser $u): array => [
-            'id' => $u->id,
-            'name' => $u->name,
-            'email' => $u->email,
-            'auth_method' => $u->auth_method,
-            'is_blocked' => $u->is_blocked,
-            'created_at' => $u->created_at?->toIso8601String(),
-        ]);
+        if ($authMethod === 'password') {
+            $tenantUsersQuery->where('auth_method', 'password');
+        } elseif ($authMethod === 'otp') {
+            $tenantUsersQuery->where('auth_method', 'otp');
+        }
+
+        if ($status === 'active') {
+            $tenantUsersQuery->where('is_blocked', false);
+        } elseif ($status === 'blocked') {
+            $tenantUsersQuery->where('is_blocked', true);
+        }
+
+        $sortColumn = match ($sort) {
+            'name' => 'name',
+            'email' => 'email',
+            default => 'created_at',
+        };
+
+        $paginator = $tenantUsersQuery
+            ->orderBy($sortColumn, $direction)
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $items = $paginator->getCollection()
+            ->map(fn (TenantUser $u): array => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'auth_method' => $u->auth_method,
+                'is_blocked' => $u->is_blocked,
+                'created_at' => $u->created_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
 
         return Inertia::render('client/apps/auth', [
             ...$context,
-            'tenantUsers' => $tenantUsers,
-            'userSearch' => $search,
+            'tenantUsers' => [
+                'items' => $items,
+                'total' => $paginator->total(),
+                'page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'from' => $paginator->firstItem(),
+                'to' => $paginator->lastItem(),
+            ],
+            'userFilters' => [
+                'search' => $search,
+                'auth_method' => $authMethod,
+                'status' => $status,
+                'sort' => $sort,
+                'direction' => $direction,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 

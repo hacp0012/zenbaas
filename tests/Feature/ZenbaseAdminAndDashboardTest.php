@@ -694,9 +694,120 @@ test('app owners can create and edit tenant user name and email with strict owne
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('client/apps/auth')
-            ->has('tenantUsers', 1)
-            ->where('tenantUsers.0.name', 'Alice Modifiée')
-            ->where('tenantUsers.0.email', 'alice.new@app.test')
+            ->where('tenantUsers.total', 1)
+            ->has('tenantUsers.items', 1)
+            ->where('tenantUsers.items.0.name', 'Alice Modifiée')
+            ->where('tenantUsers.items.0.email', 'alice.new@app.test')
+        );
+
+    app(TenantManagerService::class)->deleteDatabase($app);
+});
+
+test('client app auth page supports filtering by search, auth method, status, sorting, and pagination', function () {
+    $owner = User::factory()->create();
+    $app = App::factory()->create(['user_id' => $owner->id]);
+
+    app(TenantManagerService::class)->connect($app);
+
+    TenantUser::query()->create([
+        'name' => 'Alice Password',
+        'email' => 'alice@tenant.test',
+        'password_hash' => bcrypt('secret123'),
+        'auth_method' => 'password',
+        'is_blocked' => false,
+    ]);
+
+    TenantUser::query()->create([
+        'name' => 'Bob OTP Blocked',
+        'email' => 'bob@tenant.test',
+        'auth_method' => 'otp',
+        'is_blocked' => true,
+    ]);
+
+    TenantUser::query()->create([
+        'name' => 'Charlie OTP Active',
+        'email' => 'charlie@tenant.test',
+        'auth_method' => 'otp',
+        'is_blocked' => false,
+    ]);
+
+    for ($i = 1; $i <= 14; $i++) {
+        TenantUser::query()->create([
+            'name' => sprintf('User %02d', $i),
+            'email' => sprintf('user%02d@tenant.test', $i),
+            'password_hash' => bcrypt('secret123'),
+            'auth_method' => 'password',
+            'is_blocked' => false,
+        ]);
+    }
+
+    // Default pagination (15 per page, 17 total -> page 1 has 15, page 2 has 2)
+    $this->actingAs($owner)
+        ->get(route('dashboard.apps.auth', $app))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('client/apps/auth')
+            ->where('tenantUsers.total', 17)
+            ->where('tenantUsers.page', 1)
+            ->where('tenantUsers.last_page', 2)
+            ->where('tenantUsers.per_page', 15)
+            ->has('tenantUsers.items', 15)
+            ->where('userFilters.auth_method', 'all')
+            ->where('userFilters.status', 'all')
+        );
+
+    // Custom per_page=10 on page 2
+    $this->actingAs($owner)
+        ->get(route('dashboard.apps.auth', ['app' => $app, 'per_page' => 10, 'page' => 2]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('tenantUsers.page', 2)
+            ->where('tenantUsers.last_page', 2)
+            ->where('tenantUsers.per_page', 10)
+            ->has('tenantUsers.items', 7)
+        );
+
+    // Filter by auth_method=otp
+    $this->actingAs($owner)
+        ->get(route('dashboard.apps.auth', ['app' => $app, 'auth_method' => 'otp']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('tenantUsers.total', 2)
+            ->has('tenantUsers.items', 2)
+            ->where('userFilters.auth_method', 'otp')
+        );
+
+    // Filter by status=blocked
+    $this->actingAs($owner)
+        ->get(route('dashboard.apps.auth', ['app' => $app, 'status' => 'blocked']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('tenantUsers.total', 1)
+            ->where('tenantUsers.items.0.email', 'bob@tenant.test')
+        );
+
+    // Combined filter (auth_method=otp & status=active) + sort by email asc
+    $this->actingAs($owner)
+        ->get(route('dashboard.apps.auth', [
+            'app' => $app,
+            'auth_method' => 'otp',
+            'status' => 'active',
+            'sort' => 'email',
+            'direction' => 'asc',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('tenantUsers.total', 1)
+            ->where('tenantUsers.items.0.email', 'charlie@tenant.test')
+        );
+
+    // Search by email case-insensitively
+    $this->actingAs($owner)
+        ->get(route('dashboard.apps.auth', ['app' => $app, 'search' => 'ALICE@TENANT']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('tenantUsers.total', 1)
+            ->where('tenantUsers.items.0.name', 'Alice Password')
         );
 
     app(TenantManagerService::class)->deleteDatabase($app);

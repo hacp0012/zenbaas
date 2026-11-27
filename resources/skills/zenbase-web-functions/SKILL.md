@@ -3,8 +3,9 @@ name: zenbase-web-functions
 description: >-
   Guides AI agents when authoring, debugging, deploying, or testing Zenbase Serverless PHP
   Web Functions (Edge Functions). Use when creating or editing PHP functions for a Zenbase
-  app, using $event or $context (database, storage, auth, env), resolving sandbox violations
-  or timeouts, or using Zenbase MCP tools (get_function_code, upsert_function, invoke_function).
+  app, using $event or $context (database, storage, auth, env, mail, http), resolving sandbox
+  violations or timeouts, or using Zenbase MCP tools (get_function_code, upsert_function,
+  invoke_function).
 ---
 
 # Zenbase Serverless PHP Web Functions
@@ -75,6 +76,50 @@ return function ($event, $context) {
   - `check(): bool`, `user(): ?array`, `id(): ?string`, `email(): ?string`.
 - **`$context->env`**:
   - Associative array `array<string, string>` merging app-level secrets and function-level overrides (function-level wins). Always check for missing keys gracefully (`$context->env['KEY'] ?? ''`).
+- **`$context->mail`** (`\Zenbase\MailManager` — transactional email with validation & rate limiting):
+  - `send(array $options): array` (sends immediately) and `queue(array $options): array` (queues asynchronously — recommended for slow SMTP transports to stay well under the 5-second timeout).
+  - Required options: `to` (`string|string[]`), `subject` (`string`, max `200` chars), and at least one of `html` or `text` (`string|null`, max `100 KB` each).
+  - Optional options: `cc` (`string|string[]`), `bcc` (`string|string[]`), `reply_to` (`string`), `from_name` (`string`, max `80` chars; defaults to app name while keeping the platform `From` address).
+  - Returns `['sent' => bool, 'queued' => bool, 'to' => string[], 'cc' => string[], 'bcc' => string[], 'subject' => string]`.
+  - Safeguards (default limits, configurable per app in Rate Limits settings): max **5 emails/invocation**, max **10 combined recipients** (`to` + `cc` + `bcc`) per email, **30 emails/minute** per app, and CR/LF header-injection rejection on emails, `subject`, and `from_name`.
+- **`$context->http`** (`\Zenbase\HttpClient` — outbound HTTPS client with strict anti-SSRF protection):
+  - Fluent immutable modifiers (each returns a cloned instance sharing the invocation request counter): `withHeaders(array $headers)` (`Host` header and CR/LF rejected), `withToken(string $token, string $type = 'Bearer')`, `timeout(int $seconds)` (clamped `1`–`4`s, default `3`s).
+  - Request methods: `get($url, $query = [])`, `post($url, $data = [])`, `put($url, $data = [])`, `patch($url, $data = [])`, `delete($url, $data = [])`, `request($method, $url, $options = [])` (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`). Passing an array `$data` encodes JSON automatically; passing a string sends a raw body; `$options` accepts `query`, `json`, `body`.
+  - Returns `['status' => int, 'ok' => bool, 'body' => string, 'json' => mixed, 'headers' => array<string, string[]>]` (response headers lowercased; `body` truncated at **512 KB**).
+  - Anti-SSRF rules & quotas: **HTTPS only on port 443** (blocks `http://`, custom ports, and embedded `user:pass@`), blocks local/internal hosts (`localhost`, `*.local`, `*.internal`, `*.home.arpa`, `metadata.google.internal`, etc.) and private/loopback/link-local/CGNAT/reserved IPv4 & IPv6 addresses including DNS resolution, **HTTP redirects disabled** (`withoutRedirecting`), default max **5 requests/invocation** (configurable per app), timeout `1`–`4`s.
+
+```php
+<?php
+
+return function ($event, $context) {
+    /** @var \Zenbase\Context $context */
+
+    $apiKey = $context->env['EXTERNAL_API_KEY'] ?? '';
+    if ($apiKey === '') {
+        return ['status' => 500, 'data' => ['message' => 'Missing EXTERNAL_API_KEY secret.']];
+    }
+
+    $res = $context->http
+        ->withToken($apiKey)
+        ->timeout(3)
+        ->post('https://api.example.com/v1/notify', [
+            'order_id' => $event['payload']['order_id'] ?? null,
+        ]);
+
+    if (! $res['ok']) {
+        return ['status' => 502, 'data' => ['upstream_status' => $res['status']]];
+    }
+
+    $mail = $context->mail->queue([
+        'to' => (string) ($event['payload']['email'] ?? ''),
+        'subject' => 'Order confirmed',
+        'html' => '<p>Your order has been confirmed.</p>',
+        'text' => 'Your order has been confirmed.',
+    ]);
+
+    return ['status' => 200, 'data' => ['notified' => true, 'mail' => $mail]];
+};
+```
 
 ### Return Value & Logging
 - Return `['status' => <100..599>, 'data' => <mixed>]` to control the HTTP status code. Any other return value defaults to HTTP `200` wrapped in `data`.
@@ -91,7 +136,9 @@ Static lexical analysis (`token_get_all`) blocks deployment and execution if the
 - **Raw sockets / cURL**: `fsockopen`, `pfsockopen`, `stream_socket_client`, `stream_socket_server`, `curl_exec`, `curl_multi_exec`
 - **Server env / config**: `phpinfo`, `getenv`, `putenv`, `ini_set`, `ini_alter`, `apache_setenv`
 
-Hard limits: **5-second execution timeout**, **1 MB** max `.php` file size, **1000** documents max per query.
+Always use the sandboxed `$context` APIs instead: `$context->storage` for files, `$context->env` for secrets, `$context->mail` for transactional emails, and `$context->http` for outbound HTTPS API calls.
+
+Hard & default limits: **5-second execution timeout**, **1 MB** max `.php` file size, **1000** documents max per query, **512 KB** max HTTP response body, **100 KB** max email body (`html`/`text`), and per-app configurable rate limits (defaults: **5 HTTP requests/invocation** with **1–4s** timeout, **5 emails/invocation**, **10 recipients/email**, **30 emails/min**).
 
 ## 5. Deploy & Verification Workflow
 

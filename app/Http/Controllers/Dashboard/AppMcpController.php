@@ -25,7 +25,7 @@ class AppMcpController extends Controller
         ],
         'zenbase-web-functions' => [
             'title' => 'Web Functions PHP Serverless',
-            'description' => 'Règles de syntaxe strictes, référence $event/$context, restrictions du sandbox PHP, limite 5 s et déploiement/test via MCP.',
+            'description' => 'Règles de syntaxe strictes, référence $event/$context (database, storage, auth, env, mail, http anti-SSRF), restrictions du sandbox PHP, limite 5 s et déploiement/test via MCP.',
         ],
         'zenbase-mcp-workflow' => [
             'title' => 'Workflow opérationnel MCP',
