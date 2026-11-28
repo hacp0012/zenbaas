@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getApiBaseUrl, getAppUrl } from '@/lib/app-url';
 import { dashboard } from '@/routes';
 import type { Auth, ZenbaseApp, ZenbaseFunction } from '@/types';
 
@@ -84,7 +85,7 @@ export default function ClientAppFunctions({
     stubsContent: string;
     globalEnv?: Record<string, string>;
 }) {
-    const { auth } = usePage<{ auth: Auth }>().props;
+    const { auth, appUrl } = usePage<{ auth: Auth; appUrl?: string }>().props;
     const functions = app.functions ?? [];
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -156,14 +157,16 @@ export default function ClientAppFunctions({
         };
     }, [functions]);
 
-    const normalizedApiBase = (apiBaseUrl ?? '/api/v1').replace(/\/+$/, '');
+    const normalizedApiBase = getApiBaseUrl(apiBaseUrl, appUrl);
+    const normalizedEndpoint =
+        normalizedApiBase.replace(/\/api\/v1$/, '') || getAppUrl(appUrl);
     const sampleFnName = functions[0]?.name ?? 'hello-world';
     const sampleInvokeUrl = `${normalizedApiBase}/functions/${sampleFnName}/invoke`;
 
     const sdkInvokeSnippet = `import { Zenbase } from '@zenbase/sdk';
 
 const zb = new Zenbase({
-  endpoint: '${normalizedApiBase.replace(/\/api\/v1$/, '') || 'http://localhost:8000'}',
+  endpoint: '${normalizedEndpoint}',
   apiKey: '${app.public_key}',
 });
 
@@ -358,7 +361,10 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                             {(
                                 [
                                     ['all', `Toutes (${functions.length})`],
-                                    ['active', `Actives (${metrics.activeCount})`],
+                                    [
+                                        'active',
+                                        `Actives (${metrics.activeCount})`,
+                                    ],
                                     [
                                         'inactive',
                                         `Désactivées (${functions.length - metrics.activeCount})`,

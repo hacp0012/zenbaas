@@ -16,7 +16,7 @@ Use this workflow whenever building or updating an application that consumes a Z
 
 - **Browser / frontend / mobile clients**: ALWAYS use the **public key (`zb_pub_...`)** via public env vars (e.g., `VITE_ZENBASE_PUBLIC_KEY`, `NEXT_PUBLIC_ZENBASE_PUBLIC_KEY`). Access is enforced by the app's CORS allowlist.
 - **Server-side only (Node.js, API routes, workers, scripts)**: Use the **secret key (`zb_sec_...`)** from server-only env vars (`ZENBASE_SECRET_KEY`). NEVER expose `zb_sec_...` in client bundles, logs, or committed files.
-- **Endpoint normalization**: Pass the base URL (`https://api.example.com` or `http://127.0.0.1:8000`); the SDK appends `/api/v1` automatically.
+- **Endpoint normalization**: Pass the base URL via an environment variable such as `VITE_ZENBASE_ENDPOINT` or `ZENBASE_ENDPOINT` (e.g., `https://api.example.com`); the SDK appends `/api/v1` automatically.
 
 ```typescript
 import { Zenbase } from '@zenbase/sdk';

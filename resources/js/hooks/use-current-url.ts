@@ -1,5 +1,6 @@
 import type { InertiaLinkProps } from '@inertiajs/react';
 import { usePage } from '@inertiajs/react';
+import { getAppUrl } from '@/lib/app-url';
 import { toUrl } from '@/lib/utils';
 
 export type IsCurrentUrlFn = (
@@ -28,11 +29,15 @@ export type UseCurrentUrlReturn = {
 
 export function useCurrentUrl(): UseCurrentUrlReturn {
     const page = usePage();
+    const ssrOrigin =
+        getAppUrl(
+            typeof page.props.appUrl === 'string'
+                ? page.props.appUrl
+                : undefined,
+        ) || 'http://localhost';
     const currentUrlPath = new URL(
         page.url,
-        typeof window !== 'undefined'
-            ? window.location.origin
-            : 'http://localhost',
+        typeof window !== 'undefined' ? window.location.origin : ssrOrigin,
     ).pathname;
 
     const isCurrentUrl: IsCurrentUrlFn = (

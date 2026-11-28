@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getApiBaseUrl } from '@/lib/app-url';
 import { dashboard } from '@/routes';
 import type { Auth, ZenbaseApp, ZenbaseFunction } from '@/types';
 
@@ -154,7 +155,7 @@ export default function ClientAppFunctionEditor({
         return Array.from(keys);
     }, [globalEnv, activeFunction]);
 
-    const normalizedApiBase = (apiBaseUrl ?? '/api/v1').replace(/\/+$/, '');
+    const normalizedApiBase = getApiBaseUrl(apiBaseUrl);
     const invokeEndpoint = activeFunction
         ? `${normalizedApiBase}/functions/${activeFunction.name}/invoke`
         : `${normalizedApiBase}/functions/${fnName || 'ma-fonction'}/invoke`;

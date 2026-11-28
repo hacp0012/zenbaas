@@ -22,6 +22,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { getApiBaseUrl, getAppUrl } from '@/lib/app-url';
 import { dashboard } from '@/routes';
 import type { ZenbaseApp } from '@/types';
 
@@ -42,7 +43,9 @@ export default function ClientAppIntegrations({
         setTimeout(() => setCopiedText(null), 2000);
     }
 
-    const normalizedEndpoint = apiBaseUrl.replace(/\/api\/v1$/, '');
+    const normalizedApiBase = getApiBaseUrl(apiBaseUrl);
+    const normalizedEndpoint =
+        normalizedApiBase.replace(/\/api\/v1$/, '') || getAppUrl();
 
     const sdkSnippet = `import { Zenbase } from '@zenbase/sdk';
 

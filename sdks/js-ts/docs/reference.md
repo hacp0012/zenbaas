@@ -22,7 +22,7 @@ const baas = new BaaSClient(config: ZenbaseConfig);
 
 | Propriété | Type | Requis | Description |
 | :--- | :--- | :---: | :--- |
-| `endpoint` | `string` | ✅ | URL de base de votre serveur Zenbase (ex: `'http://localhost:8000'` ou `'https://api.domaine.com'`). Le suffixe `/api/v1` est ajouté automatiquement s'il est absent. |
+| `endpoint` | `string` | ✅ | URL de base de votre serveur Zenbase (ex: `'https://api.domaine.com'`, idéalement chargée depuis `.env`). Le suffixe `/api/v1` est ajouté automatiquement s'il est absent. |
 | `apiKey` | `string` | ✅ | Clé d'API de l'application : utilisez `zb_sec_...` côté serveur Node.js (accès complet sans restriction CORS) ou `zb_pub_...` côté client navigateur. |
 | `headers` | `Record<string, string>` | ❌ | En-têtes HTTP additionnels envoyés avec chaque requête. |
 | `fetch` | `typeof fetch` | ❌ | Implémentation personnalisée de `fetch` (utile pour les tests unitaires, proxys d'entreprise ou environnements isolés). |

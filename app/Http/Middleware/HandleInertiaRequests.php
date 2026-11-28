@@ -43,6 +43,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => $configuredName === 'Laravel' ? 'Zenbase' : $configuredName,
+            'appUrl' => rtrim((string) config('app.url'), '/'),
             'auth' => [
                 'user' => $user ? [
                     ...$user->toArray(),

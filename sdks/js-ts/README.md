@@ -28,8 +28,8 @@ pnpm add ./sdks/js-ts
 import { Zenbase } from '@zenbase/sdk';
 
 const zb = new Zenbase({
-  endpoint: 'http://localhost:8000', // URL de votre instance Zenbase
-  apiKey: 'zb_pub_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', // ou zb_sec_... côté serveur Node.js
+  endpoint: process.env.ZENBASE_ENDPOINT ?? 'https://api.votre-domaine.com', // URL de votre instance Zenbase (via .env)
+  apiKey: process.env.ZENBASE_API_KEY ?? 'zb_pub_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', // ou zb_sec_... côté serveur Node.js
 });
 ```
 

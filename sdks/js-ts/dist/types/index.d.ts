@@ -1,6 +1,6 @@
 export interface ZenbaseConfig {
     /**
-     * URL de base du serveur Zenbase (ex: 'https://api.zenbase.local' ou 'http://localhost:8000')
+     * URL de base du serveur Zenbase (ex: 'https://api.votre-domaine.com', fournie via variable d'environnement)
      */
     endpoint: string;
     /**
