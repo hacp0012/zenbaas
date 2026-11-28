@@ -1,6 +1,6 @@
-# Référence API — SDK Node.js & Web (`@zenbase/sdk`)
+# Référence API — SDK Node.js & Web (`@hacp0012/zenbase-sdk`)
 
-Cette page constitue la **référence technique exhaustive** du SDK **`@zenbase/sdk`** pour **Node.js (18+)**, **TypeScript**, **Bun**, **Deno** et les navigateurs modernes.
+Cette page constitue la **référence technique exhaustive** du SDK **`@hacp0012/zenbase-sdk`** pour **Node.js (18+)**, **TypeScript**, **Bun**, **Deno** et les navigateurs modernes.
 
 > Vous cherchez des exemples pratiques pas-à-pas ? Consultez les guides par fonctionnalité : [Démarrage](./getting-started.md) · [Base de données](./database.md) · [Authentification](./auth.md) · [Stockage](./storage.md) · [Web Functions](./functions.md), ou revenez à l'[Introduction du SDK](../README.md).
 
@@ -11,7 +11,7 @@ Cette page constitue la **référence technique exhaustive** du SDK **`@zenbase/
 ### Constructeur
 
 ```typescript
-import { Zenbase, BaaSClient } from '@zenbase/sdk';
+import { Zenbase, BaaSClient } from '@hacp0012/zenbase-sdk';
 
 const zb = new Zenbase(config: ZenbaseConfig);
 // ou via l'alias compatible :
@@ -136,7 +136,7 @@ L'utilitaire `ZenbaseBlob` permet d'encoder et de décoder des fichiers ou donn�
 
 ```typescript
 import { readFileSync, writeFileSync } from 'node:fs';
-import { Zenbase, ZenbaseBlob } from '@zenbase/sdk';
+import { Zenbase, ZenbaseBlob } from '@hacp0012/zenbase-sdk';
 
 const pdfBytes = readFileSync('./contrat.pdf');
 const blobField = ZenbaseBlob.fromUint8Array(pdfBytes, 'application/pdf', 'contrat.pdf');
@@ -217,7 +217,7 @@ Accès : `zb.functions`
 
 ## 8. Interfaces & Types TypeScript Exportés
 
-Tous les types suivants peuvent être importés directement depuis `@zenbase/sdk` :
+Tous les types suivants peuvent être importés directement depuis `@hacp0012/zenbase-sdk` :
 
 ```typescript
 import type {
@@ -245,7 +245,7 @@ import type {
   ZenbaseSchemaField,
   ZenbaseCollectionSchema,
   ZenbaseBlobValue,
-} from '@zenbase/sdk';
+} from '@hacp0012/zenbase-sdk';
 ```
 
 ### Détail des Structures de Données

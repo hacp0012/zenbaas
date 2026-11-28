@@ -11,7 +11,7 @@ use Laravel\Mcp\Server\Attributes\Uri;
 use Laravel\Mcp\Server\Resource;
 
 #[Name('sdk_js_docs')]
-#[Description('Official documentation and quickstart guide for the @zenbase/sdk JavaScript/TypeScript client.')]
+#[Description('Official documentation and quickstart guide for the @hacp0012/zenbase-sdk JavaScript/TypeScript client.')]
 #[Uri('zenbase://docs/sdk-js')]
 #[MimeType('text/markdown')]
 class SdkDocsResource extends Resource
@@ -24,7 +24,7 @@ class SdkDocsResource extends Resource
         $path = base_path('sdks/js-ts/README.md');
 
         if (! file_exists($path)) {
-            return Response::error('Documentation @zenbase/sdk introuvable.');
+            return Response::error('Documentation @hacp0012/zenbase-sdk introuvable.');
         }
 
         return Response::text((string) file_get_contents($path));

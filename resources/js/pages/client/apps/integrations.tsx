@@ -47,7 +47,7 @@ export default function ClientAppIntegrations({
     const normalizedEndpoint =
         normalizedApiBase.replace(/\/api\/v1$/, '') || getAppUrl();
 
-    const sdkSnippet = `import { Zenbase } from '@zenbase/sdk';
+    const sdkSnippet = `import { Zenbase } from '@hacp0012/zenbase-sdk';
 
 const zb = new Zenbase({
   endpoint: '${normalizedEndpoint}',
@@ -239,7 +239,7 @@ const { fileUrl } = await zb.storage.upload('avatars/photo.png', file);`;
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                                 <Code2 className="size-4 text-blue-600 dark:text-blue-400" />
-                                Intégration Rapide avec le SDK (@zenbase/sdk)
+                                Intégration Rapide avec le SDK (@hacp0012/zenbase-sdk)
                             </CardTitle>
                             <CardDescription>
                                 Initialisez le client TypeScript / JavaScript

@@ -202,14 +202,14 @@ class ZenbaseAppServer extends Server
                 'uri' => 'zenbase://docs/sdk-js',
                 'mime_type' => 'text/markdown',
                 'is_template' => false,
-                'description' => 'Guide de démarrage rapide du client @zenbase/sdk (Node.js, TypeScript, React, Next.js, Vue).',
+                'description' => 'Guide de démarrage rapide du client @hacp0012/zenbase-sdk (Node.js, TypeScript, React, Next.js, Vue).',
                 'usage_example' => '« Lis zenbase://docs/sdk-js et initialise le client Zenbase dans mon app Vite. »',
             ],
             [
                 'uri' => 'zenbase://docs/sdk-reference',
                 'mime_type' => 'text/markdown',
                 'is_template' => false,
-                'description' => 'Référence API exhaustive de @zenbase/sdk : toutes les méthodes Database, ZenbaseBlob, Auth, Storage, Functions et types TypeScript.',
+                'description' => 'Référence API exhaustive de @hacp0012/zenbase-sdk : toutes les méthodes Database, ZenbaseBlob, Auth, Storage, Functions et types TypeScript.',
                 'usage_example' => '« Consulte zenbase://docs/sdk-reference pour implémenter une pagination et un upload binaire. »',
             ],
         ];
@@ -230,7 +230,7 @@ class ZenbaseAppServer extends Server
         return [
             [
                 'name' => 'generate-sdk-types',
-                'description' => 'Génère des interfaces TypeScript strictes et un client @zenbase/sdk typé à partir des collections et schémas réels de l’application.',
+                'description' => 'Génère des interfaces TypeScript strictes et un client @hacp0012/zenbase-sdk typé à partir des collections et schémas réels de l’application.',
                 'use_case' => 'Idéal au démarrage d’un frontend ou après modification d’un schéma pour synchroniser automatiquement tous vos types TS.',
                 'arguments' => [
                     ['name' => 'target_file', 'required' => false, 'description' => 'Chemin du fichier TS cible (défaut : src/lib/zenbase-types.ts).'],
@@ -264,7 +264,7 @@ class ZenbaseAppServer extends Server
             ],
             [
                 'name' => 'scaffold-crud-module',
-                'description' => 'Lit le schéma réel et des exemples de documents d’une collection pour générer un module CRUD typé complet avec @zenbase/sdk.',
+                'description' => 'Lit le schéma réel et des exemples de documents d’une collection pour générer un module CRUD typé complet avec @hacp0012/zenbase-sdk.',
                 'use_case' => 'Générer en une commande les services, hooks, filtres JSON1 et pagination pour une collection dans React, Next.js ou Vue.',
                 'arguments' => [
                     ['name' => 'collection', 'required' => true, 'description' => 'Nom de la collection existante.'],

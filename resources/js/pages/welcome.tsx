@@ -424,7 +424,7 @@ export default function Welcome() {
                                     SQLite JSON1
                                 </span>
                                 <span className="zb-trusted__logo">
-                                    @zenbase/sdk
+                                    @hacp0012/zenbase-sdk
                                 </span>
                                 <span className="zb-trusted__logo">
                                     TypeScript
@@ -771,7 +771,7 @@ export default function Welcome() {
                                             href="/docs?doc=sdks/js-ts/docs/getting-started.md"
                                             className="zb-btn-secondary zb-label-lg"
                                         >
-                                            Guide @zenbase/sdk
+                                            Guide @hacp0012/zenbase-sdk
                                         </Link>
                                     </div>
                                 </div>
@@ -871,7 +871,7 @@ export default function Welcome() {
                                         Provisionnez automatiquement une base
                                         NoSQL isolée avec collections, schémas
                                         JSON optionnels et requêtes filtrées via
-                                        @zenbase/sdk.
+                                        @hacp0012/zenbase-sdk.
                                     </p>
                                     <div className="zb-cta-row zb-cta-row--left">
                                         <Link
@@ -1086,7 +1086,7 @@ export default function Welcome() {
                                             </h3>
                                         </div>
                                         <p className="zb-body-sm zb-muted">
-                                            Connectez @zenbase/sdk, votre IDE et
+                                            Connectez @hacp0012/zenbase-sdk, votre IDE et
                                             vos assistants IA grâce au serveur
                                             MCP et aux fichiers SKILL.md.
                                         </p>

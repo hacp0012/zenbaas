@@ -187,18 +187,18 @@ Dans le protocole MCP, les 3 primitives se complètent :
 | `zenbase://functions/{function}/code` | Template URI | `text/x-php` | Code source PHP complet d'une Web Function déployée. Permet d'attacher directement une fonction au chat pour revue ou refactoring. |
 | `zenbase://docs/function-stubs` | Statique | `text/x-php` | Stubs PHP officiels (`zenbase-stubs.php`) documentant les signatures exactes de `$event` et `$context`. |
 | `zenbase://docs/web-functions` | Statique | `text/markdown` | Guide complet des Web Functions PHP (sandbox, en-têtes HTTP, codes retour, limites 5 s, exemples). |
-| `zenbase://docs/sdk-js` | Statique | `text/markdown` | Guide officiel de démarrage rapide du package `@zenbase/sdk`. |
-| `zenbase://docs/sdk-reference` | Statique | `text/markdown` | Référence API exhaustive de `@zenbase/sdk` (Database, `ZenbaseBlob`, Auth, Storage, Functions et types TS exportés). |
+| `zenbase://docs/sdk-js` | Statique | `text/markdown` | Guide officiel de démarrage rapide du package `@hacp0012/zenbase-sdk`. |
+| `zenbase://docs/sdk-reference` | Statique | `text/markdown` | Référence API exhaustive de `@hacp0012/zenbase-sdk` (Database, `ZenbaseBlob`, Auth, Storage, Functions et types TS exportés). |
 
 ### Prompts guidés / Commandes (8)
 
 | Commande | Arguments | Contexte injecté & Cas d'usage |
 | :--- | :--- | :--- |
-| `/generate-sdk-types` | `target_file` *(optionnel)* | Injecte toutes vos collections et schémas pour générer un fichier TypeScript strict + client `@zenbase/sdk` typé. |
+| `/generate-sdk-types` | `target_file` *(optionnel)* | Injecte toutes vos collections et schémas pour générer un fichier TypeScript strict + client `@hacp0012/zenbase-sdk` typé. |
 | `/build-web-function` | `function_name` *(requis)*, `goal` *(requis)* | Injecte vos collections et noms de clés `.env` pour concevoir une Web Function PHP conforme aux stubs et au sandbox. |
 | `/debug-web-function` | `function_name` *(requis)* | Injecte automatiquement le code source PHP actuel de la fonction, ses **10 derniers logs / erreurs** et ses clés `.env` pour diagnostiquer et corriger un bug sans copier-coller. |
 | `/design-collection-schema` | `collection` *(requis)*, `requirements` *(requis)* | Analyse vos collections existantes et conçoit un schéma JSON Zenbase strict (`string`, `number`, `boolean`, `object`, `array`, `blob`) prêt pour `create_collection` / `update_collection_schema`. |
-| `/scaffold-crud-module` | `collection` *(requis)*, `framework` *(optionnel)* | Lit le schéma réel et des exemples de documents d'une collection pour générer un module CRUD complet et typé avec `@zenbase/sdk` (pagination, filtres JSON1, mutations). |
+| `/scaffold-crud-module` | `collection` *(requis)*, `framework` *(optionnel)* | Lit le schéma réel et des exemples de documents d'une collection pour générer un module CRUD complet et typé avec `@hacp0012/zenbase-sdk` (pagination, filtres JSON1, mutations). |
 | `/setup-auth-flow` | `method` *(optionnel : `password`, `otp`, `both`)*, `framework` *(optionnel)* | Génère un flux complet `zb.auth` (inscription, connexion, OTP 6 chiffres, `onAuthStateChange`, garde de routes) en utilisant strictement `zb_pub_...` côté client. |
 | `/build-webhook-function` | `provider` *(requis)*, `function_name` *(optionnel)* | Génère une Web Function PHP de réception webhook (Stripe, GitHub, Resend…) avec vérification HMAC SHA-256 (`hash_equals`) via `$context->env` et journalisation idempotente. |
 | `/audit-app-security` | *(aucun)* | Injecte la posture de sécurité complète (CORS, permissions MCP, collections sans schéma, fonctions actives, quotas) pour produire un plan d'action sécurité priorisé. |
@@ -207,7 +207,7 @@ Dans le protocole MCP, les 3 primitives se complètent :
 
 ## 7. Exemples concrets avec votre agent IA
 
-- **Utiliser une Resource** : *« Lis `zenbase://collections/orders/schema` puis crée un formulaire React validé avec Zod et connecté à `@zenbase/sdk`. »*
+- **Utiliser une Resource** : *« Lis `zenbase://collections/orders/schema` puis crée un formulaire React validé avec Zod et connecté à `@hacp0012/zenbase-sdk`. »*
 - **Utiliser une Resource de code** : *« Attache `zenbase://functions/stripe-webhook/code` et vérifie si la signature HMAC est bien validée avec `hash_equals`. »*
 - **Lancer une commande guidée** : `/debug-web-function function_name=create-order` ou *« Utilise le prompt `audit-app-security` pour vérifier mon application avant mise en production. »*
 - **Combiner Skills + MCP** : téléchargez les 3 skills depuis **AI → Skills** (`zenbase-skills.zip`) dans `.agents/skills/` (ou `.cursor/skills/` / `.claude/skills/`) de votre projet client afin que votre agent applique automatiquement toutes les conventions Zenbase.

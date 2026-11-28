@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Argument;
 
 #[Name('scaffold-crud-module')]
-#[Description('Generate a strongly typed @zenbase/sdk CRUD module (queries, JSON1 filters, pagination, mutations) from a live collection schema.')]
+#[Description('Generate a strongly typed @hacp0012/zenbase-sdk CRUD module (queries, JSON1 filters, pagination, mutations) from a live collection schema.')]
 class ScaffoldCrudModulePrompt extends Prompt
 {
     public function __construct(
@@ -53,7 +53,7 @@ class ScaffoldCrudModulePrompt extends Prompt
         $endpointBase = url('/');
 
         return Response::text(<<<MARKDOWN
-Génère un **module CRUD complet et typé** avec `@zenbase/sdk` pour la collection `{$collection}` de l'application **{$app->name}** (cible : **{$framework}**).
+Génère un **module CRUD complet et typé** avec `@hacp0012/zenbase-sdk` pour la collection `{$collection}` de l'application **{$app->name}** (cible : **{$framework}**).
 
 ### Schéma actuel de `{$collection}`
 ```json
@@ -66,7 +66,7 @@ Génère un **module CRUD complet et typé** avec `@zenbase/sdk` pour la collect
 ```
 
 ### Consignes d'implémentation
-1. Consulte `zenbase://docs/sdk-reference` si besoin pour vérifier les signatures exactes de `@zenbase/sdk`.
+1. Consulte `zenbase://docs/sdk-reference` si besoin pour vérifier les signatures exactes de `@hacp0012/zenbase-sdk`.
 2. Définis les interfaces TypeScript (`Create...Input`, `Update...Input`, document complet avec `id`, `created_at`, `updated_at`) à partir du schéma réel (ou des exemples si schema-less).
 3. Implémente les opérations :
    - Liste paginée avec `.paginate({ page, perPage, search })` et filtres JSON1 (`.where(...)`, `.whereIn(...)`, `.whereContains(...)`, `.orderBy(...)`).

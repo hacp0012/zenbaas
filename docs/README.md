@@ -21,7 +21,7 @@ L'architecture documentaire de Zenbase est organisée de manière décentralisé
 
 | Langage / Plateforme | Package | Emplacement Monorepo | Statut | Documentation |
 | :--- | :--- | :--- | :--- | :--- |
-| **Node.js & Web (JS / TS)** | `@zenbase/sdk` | `sdks/js-ts/` | ✅ Disponible | [Présentation](sdks/js-ts/README.md) · [Démarrage](sdks/js-ts/docs/getting-started.md) · [Base de données](sdks/js-ts/docs/database.md) · [Auth](sdks/js-ts/docs/auth.md) · [Stockage](sdks/js-ts/docs/storage.md) · [Functions](sdks/js-ts/docs/functions.md) · [Référence API](sdks/js-ts/docs/reference.md) |
+| **Node.js & Web (JS / TS)** | `@hacp0012/zenbase-sdk` | `sdks/js-ts/` | ✅ Disponible | [Présentation](sdks/js-ts/README.md) · [Démarrage](sdks/js-ts/docs/getting-started.md) · [Base de données](sdks/js-ts/docs/database.md) · [Auth](sdks/js-ts/docs/auth.md) · [Stockage](sdks/js-ts/docs/storage.md) · [Functions](sdks/js-ts/docs/functions.md) · [Référence API](sdks/js-ts/docs/reference.md) |
 | **Dart / Flutter** (Mobile & Desktop) | `zenbase_flutter` | `sdks/dart/` | 🚧 Prévu | *À venir* |
 | **Python** (Scripts, IA & Backends) | `zenbase-py` | `sdks/python/` | 🚧 Prévu | *À venir* |
 

@@ -163,7 +163,7 @@ export default function ClientAppFunctions({
     const sampleFnName = functions[0]?.name ?? 'hello-world';
     const sampleInvokeUrl = `${normalizedApiBase}/functions/${sampleFnName}/invoke`;
 
-    const sdkInvokeSnippet = `import { Zenbase } from '@zenbase/sdk';
+    const sdkInvokeSnippet = `import { Zenbase } from '@hacp0012/zenbase-sdk';
 
 const zb = new Zenbase({
   endpoint: '${normalizedEndpoint}',
@@ -656,7 +656,7 @@ const { data, error, meta } = await zb.functions.invoke('${sampleFnName}', {
                                         : 'text-muted-foreground hover:text-foreground'
                                 }`}
                             >
-                                @zenbase/sdk
+                                @hacp0012/zenbase-sdk
                             </button>
                             <button
                                 type="button"

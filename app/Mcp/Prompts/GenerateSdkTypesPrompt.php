@@ -13,7 +13,7 @@ use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Argument;
 
 #[Name('generate-sdk-types')]
-#[Description('Generate strict TypeScript interfaces and typed @zenbase/sdk collection helpers based on the current application\'s NoSQL collections and schemas.')]
+#[Description('Generate strict TypeScript interfaces and typed @hacp0012/zenbase-sdk collection helpers based on the current application\'s NoSQL collections and schemas.')]
 class GenerateSdkTypesPrompt extends Prompt
 {
     public function __construct(
@@ -45,7 +45,7 @@ Génère le fichier TypeScript `{$targetFile}` pour l'application Zenbase **{$ap
 ### Consignes
 1. Crée une interface TypeScript stricte par collection (en incluant `id: string`, `created_at: string`, `updated_at: string`, et les champs du schéma — en typant `blob` avec `{ __type: 'blob'; mime_type: string; name?: string | null; size: number; data: string }`).
 2. Pour les collections sans schéma (`schema: null`), inspecte 1 ou 2 documents via `query_records` afin d'inférer les champs réels.
-3. Ajoute un helper d'initialisation `@zenbase/sdk` utilisant `endpoint: '{$this->endpointBase()}'` et des variables d'environnement (`VITE_ZENBASE_URL`, `VITE_ZENBASE_PUBLIC_KEY`) sans jamais coder en dur la clé secrète `zb_sec_...`.
+3. Ajoute un helper d'initialisation `@hacp0012/zenbase-sdk` utilisant `endpoint: '{$this->endpointBase()}'` et des variables d'environnement (`VITE_ZENBASE_URL`, `VITE_ZENBASE_PUBLIC_KEY`) sans jamais coder en dur la clé secrète `zb_sec_...`.
 MARKDOWN);
     }
 

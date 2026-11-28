@@ -20,7 +20,7 @@ class AppMcpController extends Controller
      */
     private const SKILL_CATALOG = [
         'zenbase-sdk-integration' => [
-            'title' => 'Intégration @zenbase/sdk',
+            'title' => 'Intégration @hacp0012/zenbase-sdk',
             'description' => 'Bonnes pratiques JS/TS/Node/Web : séparation zb_pub_/zb_sec_, typage depuis les schémas MCP, CRUD JSON1, Auth, Storage et ZenbaseBlob.',
         ],
         'zenbase-web-functions' => [

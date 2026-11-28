@@ -465,7 +465,7 @@ test('mcp resources and prompts return app metadata, schemas, stubs, docs, and g
 
     ZenbaseAppServer::resource(SdkDocsResource::class)
         ->assertOk()
-        ->assertSee('@zenbase/sdk');
+        ->assertSee('@hacp0012/zenbase-sdk');
 
     ZenbaseAppServer::resource(SdkReferenceResource::class)
         ->assertOk()

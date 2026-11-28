@@ -11,7 +11,7 @@ use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Argument;
 
 #[Name('setup-auth-flow')]
-#[Description('Generate a complete tenant authentication flow using @zenbase/sdk (email/password, 6-digit OTP, session listeners, and route guards).')]
+#[Description('Generate a complete tenant authentication flow using @hacp0012/zenbase-sdk (email/password, 6-digit OTP, session listeners, and route guards).')]
 class SetupAuthFlowPrompt extends Prompt
 {
     public function __construct(
@@ -35,7 +35,7 @@ class SetupAuthFlowPrompt extends Prompt
         $endpointBase = url('/');
 
         return Response::text(<<<MARKDOWN
-Génère un **flux complet d'authentification utilisateur** avec `@zenbase/sdk` (`zb.auth`) pour l'application **{$app->name}**.
+Génère un **flux complet d'authentification utilisateur** avec `@hacp0012/zenbase-sdk` (`zb.auth`) pour l'application **{$app->name}**.
 
 ### Paramètres
 - **Méthode souhaitée** : `{$method}` (`password` = Email/Mot de passe, `otp` = Code OTP 6 chiffres par e-mail, `both` = les deux)

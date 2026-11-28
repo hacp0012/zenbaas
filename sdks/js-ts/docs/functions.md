@@ -1,4 +1,4 @@
-# Web Functions PHP — `@zenbase/sdk`
+# Web Functions PHP — `@hacp0012/zenbase-sdk`
 
 Le module `zb.functions` permet de découvrir et d'invoquer vos **Web Functions PHP Serverless** déployées dans le bac à sable isolé de votre application depuis le navigateur ou Node.js.
 

@@ -1,16 +1,16 @@
 ---
 name: zenbase-sdk-integration
 description: >-
-  Guides AI agents when integrating the @zenbase/sdk client in JavaScript, TypeScript,
+  Guides AI agents when integrating the @hacp0012/zenbase-sdk client in JavaScript, TypeScript,
   React, Next.js, Vue, Svelte, or Node.js applications connected to a Zenbase BaaS backend.
   Use when initializing Zenbase, querying NoSQL JSON1 collections, generating TypeScript
   types from Zenbase schemas, implementing tenant authentication (password or 6-digit OTP),
   uploading files to Zenbase Storage or ZenbaseBlob, or invoking PHP Web Functions.
 ---
 
-# Zenbase SDK Integration (`@zenbase/sdk`)
+# Zenbase SDK Integration (`@hacp0012/zenbase-sdk`)
 
-Use this workflow whenever building or updating an application that consumes a Zenbase backend via `@zenbase/sdk`.
+Use this workflow whenever building or updating an application that consumes a Zenbase backend via `@hacp0012/zenbase-sdk`.
 
 ## 1. Security & Client Initialization Rules
 
@@ -19,7 +19,7 @@ Use this workflow whenever building or updating an application that consumes a Z
 - **Endpoint normalization**: Pass the base URL via an environment variable such as `VITE_ZENBASE_ENDPOINT` or `ZENBASE_ENDPOINT` (e.g., `https://api.example.com`); the SDK appends `/api/v1` automatically.
 
 ```typescript
-import { Zenbase } from '@zenbase/sdk';
+import { Zenbase } from '@hacp0012/zenbase-sdk';
 
 // Client (browser)
 export const zb = new Zenbase({
@@ -43,7 +43,7 @@ Before writing collection queries or TypeScript interfaces:
 3. Pass the interface as the generic argument to `zb.collection<T>('name')`.
 
 ```typescript
-import type { ZenbaseDocument } from '@zenbase/sdk';
+import type { ZenbaseDocument } from '@hacp0012/zenbase-sdk';
 
 export interface Product {
   name: string;

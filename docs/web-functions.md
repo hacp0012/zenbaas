@@ -239,7 +239,7 @@ $file = $context->storage->upload(
 
 ### C. Utilisateur authentifié (`$context->auth`)
 
-Lorsque le client transmet un token de session utilisateur (`zb_token_...`) via l'en-tête `X-Zenbase-User-Token` ou `Authorization: Bearer zb_token_...` (ce que le SDK `@zenbase/sdk` fait automatiquement après connexion), Zenbase résout automatiquement l'utilisateur et l'injecte dans `$context->auth` :
+Lorsque le client transmet un token de session utilisateur (`zb_token_...`) via l'en-tête `X-Zenbase-User-Token` ou `Authorization: Bearer zb_token_...` (ce que le SDK `@hacp0012/zenbase-sdk` fait automatiquement après connexion), Zenbase résout automatiquement l'utilisateur et l'injecte dans `$context->auth` :
 
 | Méthode | Signature | Retour | Description |
 | :--- | :--- | :--- | :--- |
@@ -765,10 +765,10 @@ Afin de garantir l'isolation stricte entre les applications et la sécurité du 
 - **Clé d'API (obligatoire)** : `X-Zenbase-Api-Key: zb_pub_...` (ou `zb_sec_...`), `X-API-Key`, ou `Authorization: Bearer zb_pub_...`.
 - **Session utilisateur (optionnelle, alimente `$context->auth`)** : `X-Zenbase-User-Token: zb_token_...` ou `Authorization: Bearer zb_token_...`.
 
-### B. Invocation via `@zenbase/sdk` (JS / TS / Node.js)
+### B. Invocation via `@hacp0012/zenbase-sdk` (JS / TS / Node.js)
 
 ```typescript
-import { Zenbase } from '@zenbase/sdk';
+import { Zenbase } from '@hacp0012/zenbase-sdk';
 
 const zb = new Zenbase({
   endpoint: 'https://api.votre-domaine.com',

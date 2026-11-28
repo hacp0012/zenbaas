@@ -1,4 +1,4 @@
-# Stockage de fichiers — `@zenbase/sdk`
+# Stockage de fichiers — `@hacp0012/zenbase-sdk`
 
 Le module `zb.storage` permet de téléverser, lister, télécharger et supprimer des fichiers dans l'espace de stockage isolé de votre application (`storage/app/public/tenants/{app_id}/`), tout en appliquant automatiquement le quota disque configuré pour votre compte.
 

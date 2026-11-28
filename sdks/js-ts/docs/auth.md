@@ -1,4 +1,4 @@
-# Authentification — `@zenbase/sdk`
+# Authentification — `@hacp0012/zenbase-sdk`
 
 Le module `zb.auth` gère les utilisateurs finaux propres à votre application (stockés de manière isolée dans la table `auth_users` de la base SQLite de l'application).
 

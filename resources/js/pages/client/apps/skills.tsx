@@ -82,7 +82,7 @@ export default function ClientAppSkills({
                                     dans votre projet client afin de guider vos
                                     agents IA sur le SDK{' '}
                                     <code className="font-mono text-xs">
-                                        @zenbase/sdk
+                                        @hacp0012/zenbase-sdk
                                     </code>
                                     , les Web Functions PHP et le serveur MCP.
                                 </CardDescription>

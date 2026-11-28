@@ -1,6 +1,6 @@
-# SDK Node.js & Web (`@zenbase/sdk`)
+# SDK Node.js & Web (`@hacp0012/zenbase-sdk`)
 
-Bienvenue dans la documentation officielle du package **`@zenbase/sdk`** — le client universel **Node.js**, **TypeScript** et **Web** pour la plateforme Backend-as-a-Service **Zenbase**.
+Bienvenue dans la documentation officielle du package **`@hacp0012/zenbase-sdk`** — le client universel **Node.js**, **TypeScript** et **Web** pour la plateforme Backend-as-a-Service **Zenbase**.
 
 Ce SDK est conçu sans dépendance externe lourde (basé sur l'API standard `fetch`) afin d'offrir une compatibilité native sur :
 - **Environnements Serveurs & Runtimes JS** : Node.js (18+), Bun, Deno, Edge Workers
@@ -12,20 +12,20 @@ Ce SDK est conçu sans dépendance externe lourde (basé sur l'API standard `fet
 
 ### 1. Installation du package
 
-Depuis la racine du monorepo ou votre projet :
+Installez le package `@hacp0012/zenbase-sdk` dans votre projet :
 
 ```bash
 # Avec npm
-npm install ./sdks/js-ts
+npm install @hacp0012/zenbase-sdk
 
 # Avec pnpm
-pnpm add ./sdks/js-ts
+pnpm add @hacp0012/zenbase-sdk
 ```
 
 ### 2. Initialisation du client
 
 ```typescript
-import { Zenbase } from '@zenbase/sdk';
+import { Zenbase } from '@hacp0012/zenbase-sdk';
 
 const zb = new Zenbase({
   endpoint: process.env.ZENBASE_ENDPOINT ?? 'https://api.votre-domaine.com', // URL de votre instance Zenbase (via .env)

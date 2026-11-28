@@ -1,4 +1,4 @@
-# Base de données NoSQL — `@zenbase/sdk`
+# Base de données NoSQL — `@hacp0012/zenbase-sdk`
 
 Chaque application Zenbase dispose de sa propre base de données **SQLite isolée** propulsée par l'extension **JSON1**. Vous manipulez des collections et des documents JSON sans créer de tables SQL au préalable via `zb.collection(name)` ou `zb.database`.
 
@@ -205,7 +205,7 @@ await zb.collection('products').setSchema(null);
 La base NoSQL JSON de Zenbase supporte nativement le format **BLOB** directement au sein de vos documents JSON via l'utilitaire `ZenbaseBlob` (`zb.blob`) :
 
 ```typescript
-import { Zenbase, ZenbaseBlob } from '@zenbase/sdk';
+import { Zenbase, ZenbaseBlob } from '@hacp0012/zenbase-sdk';
 
 // 1. Créer un champ BLOB à partir d'un Uint8Array, texte ou Base64
 const avatarBlob = ZenbaseBlob.fromUint8Array(

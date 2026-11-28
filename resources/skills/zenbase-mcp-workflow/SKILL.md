@@ -56,6 +56,6 @@ ALWAYS summarize the exact target (collection, record ID, user email/ID, file pa
 - `zenbase://app/overview` — consolidated snapshot of the app
 - `zenbase://collections/{collection}/schema` — single collection schema
 - `zenbase://docs/function-stubs` — authoritative PHP stubs before writing Web Functions
-- `zenbase://docs/sdk-js` — `@zenbase/sdk` quickstart reference
+- `zenbase://docs/sdk-js` — `@hacp0012/zenbase-sdk` quickstart reference
 - Prompt `generate-sdk-types` — generate strict TypeScript types from live collections
 - Prompt `build-web-function` — scaffold a sandbox-compliant PHP Web Function
