@@ -1,6 +1,6 @@
 {
     "name": "@hacp0012/zenbase-sdk",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "SDK officiel JavaScript / TypeScript & Node.js pour Zenbase BaaS (Database NoSQL, Auth, Storage, Serverless PHP Functions)",
     "type": "module",
     "main": "./dist/index.js",
